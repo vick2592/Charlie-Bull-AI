@@ -1,0 +1,28 @@
+{
+  "name": "charlie-ai-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc -p .",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "@google/generative-ai": "^0.21.0",
+    "dotenv": "^16.4.5",
+    "fastify": "^4.28.1",
+    "pino": "^9.3.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.4.2",
+    "vitest": "^1.6.0"
+  }
+}
