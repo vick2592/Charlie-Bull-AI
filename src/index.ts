@@ -1,22 +1,19 @@
 import Fastify from 'fastify';
-import cors from '@fastify/cors';
+import cors, { FastifyCorsOptions } from '@fastify/cors';
 import { config } from './lib/config.js';
 import { logger } from './lib/logger.js';
 import { registerHealthRoute } from './routes/health.js';
 import { registerChatRoute } from './routes/chat.js';
 
 async function buildServer() {
-  const app = Fastify({ logger });
-  await app.register(cors, {
-    origin: (origin: string | undefined, cb: (err: Error | null, allow?: boolean) => void) => {
-      if (!origin) return cb(null, true); // non-browser / curl
-      if (config.allowedOrigins.includes('*') || config.allowedOrigins.includes(origin)) {
-        cb(null, true);
-      } else {
-        cb(new Error('Origin not allowed'), false);
-      }
-    }
-  });
+  // Cast logger to any to satisfy Fastify's logger generic expectations (pino v9 type mismatch workaround)
+  const app = Fastify({ logger: logger as any });
+  // Use allowedOrigins directly or wildcard; simpler type-safe config
+  const corsOptions: FastifyCorsOptions = {
+    origin: config.allowedOrigins.includes('*') ? true : config.allowedOrigins,
+    credentials: false
+  };
+  await app.register(cors, corsOptions);
 
   registerHealthRoute(app);
   registerChatRoute(app);

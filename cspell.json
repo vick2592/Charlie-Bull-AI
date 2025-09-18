@@ -1,0 +1,38 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "version": "0.2",
+  "language": "en",
+  "ignorePaths": [
+    "dist",
+    "node_modules",
+    "coverage",
+    "package-lock.json",
+    "pnpm-lock.yaml",
+    "yarn.lock"
+  ],
+  "words": [
+    "charlie",
+    "DeFi",
+    "dogemoji",
+    "dotenv",
+    "elif",
+    "Fastify",
+    "gemini",
+    "healthz",
+    "loginless",
+    "pino",
+    "pnpm",
+    "tsnode",
+    "zod"
+  ],
+  "flagWords": [
+    // Add any words you want to be explicitly flagged even if correct
+  ],
+  "enableFiletypes": [
+    "ts",
+    "tsx",
+    "js",
+    "json",
+    "md"
+  ]
+}
