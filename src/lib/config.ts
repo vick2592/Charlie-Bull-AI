@@ -8,7 +8,9 @@ const ConfigSchema = z.object({
   GLOBAL_RATE_LIMIT: z.string().optional().default('100'),
   SESSION_RATE_LIMIT: z.string().optional().default('8'),
   WINDOW_SECONDS: z.string().optional().default('60'),
-  MAX_TOKENS: z.string().optional().default('1024')
+  MAX_TOKENS: z.string().optional().default('1024'),
+  GEMINI_MODEL: z.string().optional().default('gemini-2.0-flash'),
+  GEMINI_MODELS: z.string().optional().default('gemini-2.0-flash,gemini-1.5-pro,gemini-pro')
 });
 
 const raw = ConfigSchema.parse(process.env);
@@ -20,7 +22,9 @@ export const config = {
   globalRateLimit: parseInt(raw.GLOBAL_RATE_LIMIT, 10),
   sessionRateLimit: parseInt(raw.SESSION_RATE_LIMIT, 10),
   windowSeconds: parseInt(raw.WINDOW_SECONDS, 10),
-  maxTokens: parseInt(raw.MAX_TOKENS, 10)
+  maxTokens: parseInt(raw.MAX_TOKENS, 10),
+  geminiModel: raw.GEMINI_MODEL,
+  geminiModels: raw.GEMINI_MODELS.split(',').map(m => m.trim()).filter(Boolean)
 };
 
 export type AppConfig = typeof config;

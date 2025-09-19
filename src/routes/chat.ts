@@ -51,8 +51,8 @@ export function registerChatRoute(app: FastifyInstance) {
 
     const { messages: promptMessages } = buildPrompt(mergedHistory, message);
 
-    const gen = await generateWithGemini(promptMessages);
-    const assistantMessage = ensureDogEmoji(gen.text);
+  const gen = await generateWithGemini(promptMessages);
+  const assistantMessage = ensureDogEmoji(gen.text.trim());
 
     // Persist user + assistant messages
     memoryStore.append(sessionId, [
@@ -63,7 +63,7 @@ export function registerChatRoute(app: FastifyInstance) {
     const latencyMs = Date.now() - start;
     return reply.send({
       message: assistantMessage,
-      meta: { truncation: truncated, latencyMs }
+      meta: { truncation: truncated, latencyMs, modelUsed: (gen as any).modelUsed }
     });
   });
 }
