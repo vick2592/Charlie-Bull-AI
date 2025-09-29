@@ -10,7 +10,10 @@ const ConfigSchema = z.object({
   WINDOW_SECONDS: z.string().optional().default('60'),
   MAX_TOKENS: z.string().optional().default('1024'),
   GEMINI_MODEL: z.string().optional().default('gemini-2.0-flash'),
-  GEMINI_MODELS: z.string().optional().default('gemini-2.0-flash,gemini-1.5-pro,gemini-pro')
+  GEMINI_MODELS: z.string().optional().default('gemini-2.0-flash,gemini-1.5-pro,gemini-pro'),
+  CHARLIE_NAME: z.string().optional().default('Charlie'),
+  CHARLIE_CREATOR: z.string().optional().default('Charlie Bull'),
+  CHARLIE_PERSONA_EXTRA: z.string().optional().default('')
 });
 
 const raw = ConfigSchema.parse(process.env);
@@ -24,7 +27,10 @@ export const config = {
   windowSeconds: parseInt(raw.WINDOW_SECONDS, 10),
   maxTokens: parseInt(raw.MAX_TOKENS, 10),
   geminiModel: raw.GEMINI_MODEL,
-  geminiModels: raw.GEMINI_MODELS.split(',').map(m => m.trim()).filter(Boolean)
+  geminiModels: raw.GEMINI_MODELS.split(',').map(m => m.trim()).filter(Boolean),
+  charlieName: raw.CHARLIE_NAME,
+  charlieCreator: raw.CHARLIE_CREATOR,
+  charliePersonaExtra: raw.CHARLIE_PERSONA_EXTRA
 };
 
 export type AppConfig = typeof config;
