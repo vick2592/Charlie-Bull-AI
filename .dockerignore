@@ -1,0 +1,23 @@
+# Keep Docker build context lean and avoid sending secrets
+node_modules
+npm-debug.log
+Dockerfile*
+.dockerignore
+.git
+.gitignore
+.vscode
+.idea
+**/.DS_Store
+
+# Build artifacts
+/dist
+/coverage
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Test and caches
+.cspellcache
+.nyc_output
