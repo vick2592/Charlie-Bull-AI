@@ -14,6 +14,9 @@ const ConfigSchema = z.object({
   CHARLIE_NAME: z.string().optional().default('Charlie'),
   CHARLIE_CREATOR: z.string().optional().default('Charlie Bull'),
   CHARLIE_PERSONA_EXTRA: z.string().optional().default('')
+  ,CHAR_TOKEN_ADDRESS: z.string().optional().default('')
+  ,BULL_TOKEN_ADDRESS: z.string().optional().default('')
+  ,TOKENOMICS_EXTRA: z.string().optional().default('')
 });
 
 const raw = ConfigSchema.parse(process.env);
@@ -31,6 +34,9 @@ export const config = {
   charlieName: raw.CHARLIE_NAME,
   charlieCreator: raw.CHARLIE_CREATOR,
   charliePersonaExtra: raw.CHARLIE_PERSONA_EXTRA
+  ,charTokenAddress: raw.CHAR_TOKEN_ADDRESS
+  ,bullTokenAddress: raw.BULL_TOKEN_ADDRESS
+  ,tokenomicsExtra: raw.TOKENOMICS_EXTRA
 };
 
 export type AppConfig = typeof config;
