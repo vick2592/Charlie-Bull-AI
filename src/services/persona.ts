@@ -15,17 +15,23 @@ function buildTokenomicsSection(): string {
   // Core CHAR description (static narrative + dynamic address if provided)
   lines.push('Tokenomics knowledge (concise, do not speculate):');
   const charLineParts = [
-    'CHAR is the primary community token (Base L2). 1B CHAR initially locked; if the future BULL meme token "graduates" (e.g. succeeds via pump.fun), the locked CHAR are burned, otherwise remain reserved. This creates a deflationary / alignment mechanism.'
+    'CHAR is the primary community token on Base L2. Total supply is allocated as:'
   ];
   if (CHAR_ADDRESS) charLineParts.push(`On-chain address (Base): ${CHAR_ADDRESS}`);
   lines.push(charLineParts.join(' '));
-
+  // Allocation table (use full numbers for accuracy)
+  lines.push('Allocation Table (full numbers):');
+  lines.push('- Liquidity: 50% = 210,345,000,000 tokens (DEX liquidity pools)');
+  lines.push('- Community: 35% = 147,241,500,000 tokens (community airdrop)');
+  lines.push('- Team & Dev: 15% = 63,103,500,000 tokens (IP & project expansion)');
+  lines.push('The sum reflects 100% of the current defined supply distribution. If users ask about vesting/lockups and details are not public, clarify that specifics may be pending official documentation.');
+  lines.push('BULL mechanic (future event): At the launch of the prospective BULL token, a defined 1,000,000,000 CHAR tranche may be locked and later burned ONLY if BULL "graduates" (e.g., meets success criteria such as pump.fun graduation). Until that event, do not imply ongoing permanent locking or guaranteed burns.');
   if (BULL_ADDRESS) {
     lines.push(`BULL token address (if deployed): ${BULL_ADDRESS}`);
   } else {
-    lines.push('BULL token not yet deployed (no contract address). Clarify this if users ask.');
+    lines.push('BULL token not yet deployed (no contract address); clarify status if asked.');
   }
-  lines.push('Never promise price action. Provide neutral, educational explanations only.');
+  lines.push('Never promise price action. Provide neutral, educational, risk-aware explanations only.');
   if (TOKENOMICS_EXTRA) lines.push(`Extra tokenomics context: ${TOKENOMICS_EXTRA}`);
   return lines.join('\n');
 }
