@@ -89,6 +89,10 @@ Notes:
 - Groups: By default, bots only receive commands/mentions due to Telegram "privacy mode". Use BotFather `/setprivacy` → `Disable` to let the bot receive all group messages (or keep it enabled and require mentions).
 - Channels: Channel posts arrive as `channel_post` updates and are ignored by this bot by default. If you want the bot to react to channel posts, we can enable `channel_post` handling and the bot must be an admin of that channel to post replies.
 
+Restrict to a specific group only:
+- Set `TELEGRAM_ALLOWED_CHAT_IDS=-1001234567890` (replace with your group’s chat ID). The bot will ignore all other chats (including DMs).
+- How to find the chat ID: add the bot to the group, send `/help@YourBotName`, then check server logs for `telegram_chat_ignored_not_in_allowlist` (it includes the chatId). Alternatively, temporarily enable DMs and add a small debug to print `msg.chat.id`, or use a helper bot like @RawDataBot.
+
 ## Roadmap
 - [ ] Config validation (zod)
 - [ ] Memory store with truncation meta

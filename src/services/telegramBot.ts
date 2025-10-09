@@ -202,18 +202,37 @@ async function poll() {
       for (const upd of data.result) {
         offset = upd.update_id + 1;
         const msg = upd.message;
-        if (!msg || !msg.text) continue;
+        if (!msg) continue;
+
+        // Chat allowlist: only process messages from specific chat IDs if configured
+        const chatIdStr = String(msg.chat.id);
+        if (config.telegramAllowedChatIds.length > 0 && !config.telegramAllowedChatIds.includes(chatIdStr)) {
+          logger.info({ chatId: chatIdStr }, 'telegram_chat_ignored_not_in_allowlist');
+          continue;
+        }
+
+        // Greetings for new members (even if no text)
+        if (msg.new_chat_members && msg.new_chat_members.length > 0) {
+          const greeted = await handleGreetingIfAny(msg);
+          if (greeted) continue;
+        }
+
+        // If there's no text, nothing else to do
+        if (!msg.text) continue;
+
+        // User allowlist applies to text interactions
         const userId = msg.from?.id;
         if (userId && config.telegramAllowedUserIds.length > 0 && !config.telegramAllowedUserIds.includes(String(userId))) {
           logger.info({ userId }, 'telegram_message_ignored_not_allowed');
           continue;
         }
-        // Greetings for new members
-        const greeted = await handleGreetingIfAny(msg);
-        if (greeted) continue;
 
-        // DM: always respond
+        // DM: always respond unless a chat allowlist is set (then restrict to specified chats only)
         if (isPrivateChat(msg)) {
+          if (config.telegramAllowedChatIds.length > 0) {
+            logger.info({ chatId: chatIdStr }, 'telegram_dm_ignored_due_to_chat_allowlist');
+            continue;
+          }
           await handleTextMessage(msg);
           continue;
         }

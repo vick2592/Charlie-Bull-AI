@@ -21,6 +21,7 @@ const ConfigSchema = z.object({
   ,TOKENOMICS_EXTRA: z.string().optional().default('')
   ,TELEGRAM_BOT_TOKEN: z.string().optional().default('')
   ,TELEGRAM_ALLOWED_USER_IDS: z.string().optional().default('')
+  ,TELEGRAM_ALLOWED_CHAT_IDS: z.string().optional().default('')
   ,TELEGRAM_POLLING: z.string().optional().default('false')
 });
 
@@ -45,6 +46,7 @@ export const config = {
   ,tokenomicsExtra: raw.TOKENOMICS_EXTRA
   ,telegramBotToken: raw.TELEGRAM_BOT_TOKEN
   ,telegramAllowedUserIds: raw.TELEGRAM_ALLOWED_USER_IDS.split(',').map(s => s.trim()).filter(Boolean)
+  ,telegramAllowedChatIds: raw.TELEGRAM_ALLOWED_CHAT_IDS.split(',').map(s => s.trim()).filter(Boolean)
   ,telegramPolling: raw.TELEGRAM_POLLING.toLowerCase() === 'true'
 };
 
