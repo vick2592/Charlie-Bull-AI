@@ -19,6 +19,9 @@ const ConfigSchema = z.object({
   ,CHAR_TOKEN_ADDRESS: z.string().optional().default('')
   ,BULL_TOKEN_ADDRESS: z.string().optional().default('')
   ,TOKENOMICS_EXTRA: z.string().optional().default('')
+  ,TELEGRAM_BOT_TOKEN: z.string().optional().default('')
+  ,TELEGRAM_ALLOWED_USER_IDS: z.string().optional().default('')
+  ,TELEGRAM_POLLING: z.string().optional().default('false')
 });
 
 const raw = ConfigSchema.parse(process.env);
@@ -40,6 +43,9 @@ export const config = {
   ,charTokenAddress: raw.CHAR_TOKEN_ADDRESS
   ,bullTokenAddress: raw.BULL_TOKEN_ADDRESS
   ,tokenomicsExtra: raw.TOKENOMICS_EXTRA
+  ,telegramBotToken: raw.TELEGRAM_BOT_TOKEN
+  ,telegramAllowedUserIds: raw.TELEGRAM_ALLOWED_USER_IDS.split(',').map(s => s.trim()).filter(Boolean)
+  ,telegramPolling: raw.TELEGRAM_POLLING.toLowerCase() === 'true'
 };
 
 export type AppConfig = typeof config;

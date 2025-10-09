@@ -68,6 +68,27 @@ docker build -t charlie-ai-server .
 docker run -p 8080:8080 --env-file .env charlie-ai-server
 ```
 
+## Telegram Bot (Polling) 
+The server can run a simple Telegram bot that forwards messages to `/v1/chat` and replies back.
+
+1) Create a bot with BotFather and copy the token.
+2) In your deployment env file (`deploy.env`), set:
+
+- `TELEGRAM_BOT_TOKEN=123456:ABC...` (the token from BotFather)
+- `TELEGRAM_ALLOWED_USER_IDS=11111111,22222222` (optional allowlist; leave empty to allow anyone)
+- `TELEGRAM_POLLING=true` to enable the polling loop
+
+3) Restart the server/container with the updated env file.
+
+4) Message your bot in Telegram. Each chat is assigned a `sessionId` like `tg-<chat_id>` so context persists per chat. If you configured an allowlist, only those users’ messages are processed.
+
+Notes:
+- The bot uses long polling via `getUpdates`. Webhook mode isn’t implemented yet.
+- Keep your bot token secret; never commit it to git.
+- Logs will include entries like `telegram_polling_started` and `telegram_message_ignored_not_allowed` for visibility.
+- Groups: By default, bots only receive commands/mentions due to Telegram "privacy mode". Use BotFather `/setprivacy` → `Disable` to let the bot receive all group messages (or keep it enabled and require mentions).
+- Channels: Channel posts arrive as `channel_post` updates and are ignored by this bot by default. If you want the bot to react to channel posts, we can enable `channel_post` handling and the bot must be an admin of that channel to post replies.
+
 ## Roadmap
 - [ ] Config validation (zod)
 - [ ] Memory store with truncation meta

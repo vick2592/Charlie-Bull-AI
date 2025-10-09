@@ -4,6 +4,7 @@ import { config } from './lib/config.js';
 import { logger } from './lib/logger.js';
 import { registerHealthRoute } from './routes/health.js';
 import { registerChatRoute } from './routes/chat.js';
+import { startTelegramIfConfigured } from './services/telegramBot.js';
 
 async function buildServer() {
   // Cast logger to any to satisfy Fastify's logger generic expectations (pino v9 type mismatch workaround)
@@ -39,6 +40,8 @@ async function start() {
   try {
     await app.listen({ port: config.port, host: '0.0.0.0' });
     app.log.info({ port: config.port }, 'server_started');
+    // Start Telegram polling if configured
+    startTelegramIfConfigured();
   } catch (err) {
     app.log.error(err);
     process.exit(1);

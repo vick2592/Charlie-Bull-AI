@@ -5,7 +5,7 @@
 
 set -euo pipefail
 ENV_FILE=${1:-./deploy.env}
-IMAGE_TAG=${2:-184198557383.dkr.ecr.us-east-1.amazonaws.com/charlie-ai-server:tokenomics2}
+IMAGE_TAG=${2:-184198557383.dkr.ecr.us-east-1.amazonaws.com/charlie-ai-server:tokenomics3}
 
 if [ ! -f "$ENV_FILE" ]; then
   echo "Env file not found: $ENV_FILE" >&2
