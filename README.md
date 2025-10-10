@@ -93,6 +93,11 @@ Restrict to a specific group only:
 - Set `TELEGRAM_ALLOWED_CHAT_IDS=-1001234567890` (replace with your group’s chat ID). The bot will ignore all other chats (including DMs).
 - How to find the chat ID: add the bot to the group, send `/help@YourBotName`, then check server logs for `telegram_chat_ignored_not_in_allowlist` (it includes the chatId). Alternatively, temporarily enable DMs and add a small debug to print `msg.chat.id`, or use a helper bot like @RawDataBot.
 
+Commands and moderation:
+- Use `/woof` instead of `/help` for Charlie’s help to avoid conflicts with moderation bots like Shieldy.
+- In groups, Charlie replies to `/charlie <prompt>`, mentions (`@YourBotName`), or replies to Charlie.
+- Greetings: Charlie greets new members after they pass verification. We queue the welcome when members join and send it the first time they speak. This avoids greeting bots and keeps the chat clean with Shieldy.
+
 ## Roadmap
 - [ ] Config validation (zod)
 - [ ] Memory store with truncation meta
