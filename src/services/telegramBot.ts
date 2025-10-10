@@ -145,6 +145,7 @@ function queuePendingGreetings(msg: NonNullable<TelegramUpdate['message']>): boo
   let added = 0;
   for (const m of msg.new_chat_members) {
     if (m.is_bot) continue;
+    if (chatMap.has(m.id)) continue; // already queued, avoid duplicate
     const name = [m.first_name, m.last_name].filter(Boolean).join(' ') || (m.username ? '@' + m.username : 'friend');
     chatMap.set(m.id, { display: name, ts: Date.now() });
     added++;
@@ -341,6 +342,8 @@ async function poll() {
           // Ignore channels by default
           logger.debug?.({ chatType: msg.chat.type }, 'telegram_non_dm_non_group_ignored');
         }
+        // periodic cleanup of stale pending welcomes
+        maybeCleanupPendingWelcomes();
       } catch (err: any) {
         const msg = err?.name === 'AbortError' ? 'poll_timeout_abort' : (err?.message || String(err));
         const jitter = Math.floor(Math.random() * 300);
