@@ -4,7 +4,9 @@ import { config } from './lib/config.js';
 import { logger } from './lib/logger.js';
 import { registerHealthRoute } from './routes/health.js';
 import { registerChatRoute } from './routes/chat.js';
+import { socialRoutes } from './routes/social.js';
 import { startTelegramIfConfigured } from './services/telegramBot.js';
+import { socialMediaScheduler } from './services/socialMediaScheduler.js';
 
 async function buildServer() {
   // Cast logger to any to satisfy Fastify's logger generic expectations (pino v9 type mismatch workaround)
@@ -18,6 +20,7 @@ async function buildServer() {
 
   registerHealthRoute(app);
   registerChatRoute(app);
+  await app.register(socialRoutes);
 
   app.setErrorHandler((error: any, _req: any, reply: any) => {
     app.log.error({ err: error }, 'unhandled_error');
@@ -40,8 +43,15 @@ async function start() {
   try {
     await app.listen({ port: config.port, host: '0.0.0.0' });
     app.log.info({ port: config.port }, 'server_started');
+    
     // Start Telegram polling if configured
     startTelegramIfConfigured();
+    
+    // Initialize social media scheduler if enabled
+    if (config.socialPostsEnabled || config.socialRepliesEnabled) {
+      await socialMediaScheduler.initialize();
+      app.log.info('social_media_scheduler_initialized');
+    }
   } catch (err) {
     app.log.error(err);
     process.exit(1);

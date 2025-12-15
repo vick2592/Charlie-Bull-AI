@@ -23,6 +23,19 @@ const ConfigSchema = z.object({
   ,TELEGRAM_ALLOWED_USER_IDS: z.string().optional().default('')
   ,TELEGRAM_ALLOWED_CHAT_IDS: z.string().optional().default('')
   ,TELEGRAM_POLLING: z.string().optional().default('false')
+  // Bluesky Configuration
+  ,BLUESKY_IDENTIFIER: z.string().optional().default('')
+  ,BLUESKY_PASSWORD: z.string().optional().default('')
+  ,BLUESKY_SERVICE: z.string().optional().default('https://bsky.social')
+  // X/Twitter Configuration
+  ,X_API_KEY: z.string().optional().default('')
+  ,X_API_SECRET: z.string().optional().default('')
+  ,X_ACCESS_TOKEN: z.string().optional().default('')
+  ,X_ACCESS_SECRET: z.string().optional().default('')
+  ,X_BEARER_TOKEN: z.string().optional().default('')
+  // Social Media Features
+  ,SOCIAL_POSTS_ENABLED: z.string().optional().default('false')
+  ,SOCIAL_REPLIES_ENABLED: z.string().optional().default('false')
 });
 
 const raw = ConfigSchema.parse(process.env);
@@ -48,6 +61,19 @@ export const config = {
   ,telegramAllowedUserIds: raw.TELEGRAM_ALLOWED_USER_IDS.split(',').map(s => s.trim()).filter(Boolean)
   ,telegramAllowedChatIds: raw.TELEGRAM_ALLOWED_CHAT_IDS.split(',').map(s => s.trim()).filter(Boolean)
   ,telegramPolling: raw.TELEGRAM_POLLING.toLowerCase() === 'true'
+  // Bluesky Configuration
+  ,blueskyIdentifier: raw.BLUESKY_IDENTIFIER
+  ,blueskyPassword: raw.BLUESKY_PASSWORD
+  ,blueskyService: raw.BLUESKY_SERVICE
+  // X/Twitter Configuration
+  ,xApiKey: raw.X_API_KEY
+  ,xApiSecret: raw.X_API_SECRET
+  ,xAccessToken: raw.X_ACCESS_TOKEN
+  ,xAccessSecret: raw.X_ACCESS_SECRET
+  ,xBearerToken: raw.X_BEARER_TOKEN
+  // Social Media Features
+  ,socialPostsEnabled: raw.SOCIAL_POSTS_ENABLED.toLowerCase() === 'true'
+  ,socialRepliesEnabled: raw.SOCIAL_REPLIES_ENABLED.toLowerCase() === 'true'
 };
 
 export type AppConfig = typeof config;
