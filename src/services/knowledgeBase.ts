@@ -6,6 +6,7 @@
 export interface TokenomicsData {
   totalSupply: string;
   ticker: string;
+  contractAddress: string;
   allocation: {
     liquidity: { percentage: number; tokens: string; description: string };
     community: { percentage: number; tokens: string; description: string };
@@ -42,6 +43,12 @@ export interface BlogPost {
   summary?: string;
 }
 
+export interface ChainDeployment {
+  name: string;
+  dex: string;
+  isLaunchPool?: boolean;
+}
+
 export interface KnowledgeBase {
   project: {
     name: string;
@@ -59,7 +66,7 @@ export interface KnowledgeBase {
   technology: {
     primaryChain: string;
     crossChainProtocols: string[];
-    supportedChains: string[];
+    chainDeployments: ChainDeployment[];
   };
   blogPosts: BlogPost[];
 }
@@ -68,22 +75,25 @@ export const knowledgeBase: KnowledgeBase = {
   project: {
     name: 'Charlie Bull',
     description:
-      'A paradigm shift in cross-chain cryptocurrency, combining advanced blockchain interoperability with character-driven community engagement.',
+      'A paradigm shift in cross-chain cryptocurrency, combining advanced blockchain interoperability with character-driven community engagement powered by AI.',
     mission:
-      'Making cryptocurrency accessible to newcomers through educational resources and seamless cross-chain functionality.',
+      'Making cryptocurrency accessible to everyone through educational resources, AI-powered assistance, and seamless cross-chain functionality.',
     keyFeatures: [
-      'Cross-chain token transfers across 9 blockchain ecosystems',
-      'Built on Ethereum with native multi-chain functionality',
-      'Educational focus with interactive AI character',
-      'Seamless bridging via Axelar Network and Squid Router',
-      'Base ↔ Solana bridge support',
-      'Community-driven with educational initiatives',
+      'Cross-chain deployment on 9 major blockchain networks',
+      'Same contract address (0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1) across all chains',
+      'Launch liquidity pool on Base via Aerodrome',
+      'Multi-DEX support: Uniswap, PancakeSwap, QuickSwap, LFGJ, Fusion X, and more',
+      'AI-powered educational assistant (Charlie) on Telegram, Bluesky, and X',
+      'Community-first tokenomics: 35% for airdrops and rewards',
+      'Seamless bridging via Axelar Network and LayerZero',
+      'Educational $BULL token (1B supply) on Pump.fun',
     ],
   },
 
   tokenomics: {
     totalSupply: '420,690,000,000',
     ticker: '$CHAR',
+    contractAddress: '0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1',
     allocation: {
       liquidity: {
         percentage: 50,
@@ -172,18 +182,18 @@ export const knowledgeBase: KnowledgeBase = {
   },
 
   technology: {
-    primaryChain: 'Ethereum (Base L2)',
-    crossChainProtocols: ['Axelar Network', 'Squid Router', 'Base ↔ Solana Bridge'],
-    supportedChains: [
-      'Ethereum',
-      'Base',
-      'Arbitrum',
-      'Avalanche',
-      'Solana',
-      'Polygon',
-      'Optimism',
-      'BSC',
-      'Fantom',
+    primaryChain: 'Base (Ethereum L2)',
+    crossChainProtocols: ['Axelar Network', 'Squid Router', 'LayerZero'],
+    chainDeployments: [
+      { name: 'Ethereum', dex: 'Uniswap' },
+      { name: 'Avalanche', dex: 'LFGJ' },
+      { name: 'Arbitrum', dex: 'Uniswap' },
+      { name: 'Mantle', dex: 'Fusion X' },
+      { name: 'Base', dex: 'Aerodrome', isLaunchPool: true },
+      { name: 'Linea', dex: 'Linea DEX' },
+      { name: 'Blast', dex: 'Blast DEX' },
+      { name: 'Polygon', dex: 'QuickSwap' },
+      { name: 'Binance Smart Chain', dex: 'PancakeSwap' },
     ],
   },
 
@@ -240,9 +250,21 @@ ${knowledgeBase.project.keyFeatures.map((f) => `• ${f}`).join('\n')}`;
 
 export function getTechnologyStack(): string {
   const { technology } = knowledgeBase;
+  const chains = technology.chainDeployments.map((c) => c.name).join(', ');
   return `Built on ${technology.primaryChain}
 Cross-chain via: ${technology.crossChainProtocols.join(', ')}
-Supports: ${technology.supportedChains.join(', ')}`;
+Deployed on 9 chains: ${chains}
+Contract Address (all chains): ${knowledgeBase.tokenomics.contractAddress}`;
+}
+
+export function getChainDeployments(): string {
+  const { chainDeployments } = knowledgeBase.technology;
+  return chainDeployments
+    .map((chain) => {
+      const launchNote = chain.isLaunchPool ? ' 🚀 (Launch Pool)' : '';
+      return `• ${chain.name} - ${chain.dex}${launchNote}`;
+    })
+    .join('\n');
 }
 
 export function getLatestBlogPosts(limit: number = 3): BlogPost[] {
