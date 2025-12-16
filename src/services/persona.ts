@@ -44,7 +44,12 @@ function buildTokenomicsSection(): string {
   lines.push('TECHNOLOGY:');
   lines.push(`• Primary Chain: ${technology.primaryChain}`);
   lines.push(`• Cross-Chain: ${technology.crossChainProtocols.join(', ')}`);
-  lines.push(`• Supported Chains: ${technology.supportedChains.join(', ')}`);
+  lines.push(`• Contract Address (all chains): ${tokenomics.contractAddress}`);
+  lines.push('• Deployed on 9 chains:');
+  technology.chainDeployments.forEach(chain => {
+    const launchNote = chain.isLaunchPool ? ' 🚀 LAUNCH POOL' : '';
+    lines.push(`  - ${chain.name}: ${chain.dex}${launchNote}`);
+  });
   lines.push('');
   
   // Roadmap (Current Status)
