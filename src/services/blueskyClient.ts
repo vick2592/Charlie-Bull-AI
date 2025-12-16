@@ -27,7 +27,17 @@ export class BlueskyClient {
       return false;
     }
 
+    // Check for placeholder values
+    if (config.blueskyIdentifier.includes('your-handle') || 
+        config.blueskyPassword.includes('your-app-password')) {
+      logger.warn({ 
+        identifier: config.blueskyIdentifier 
+      }, 'Bluesky credentials still using placeholder values. Please update deploy.env with real credentials.');
+      return false;
+    }
+
     try {
+      logger.info({ identifier: config.blueskyIdentifier }, 'Attempting Bluesky authentication');
       await this.agent.login({
         identifier: config.blueskyIdentifier,
         password: config.blueskyPassword
@@ -35,8 +45,13 @@ export class BlueskyClient {
       this.authenticated = true;
       logger.info('Successfully authenticated with Bluesky');
       return true;
-    } catch (error) {
-      logger.error({ error }, 'Failed to authenticate with Bluesky');
+    } catch (error: any) {
+      logger.error({ 
+        error,
+        identifier: config.blueskyIdentifier,
+        errorMessage: error?.message,
+        errorStatus: error?.status
+      }, 'Failed to authenticate with Bluesky');
       this.authenticated = false;
       return false;
     }

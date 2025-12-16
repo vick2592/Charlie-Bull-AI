@@ -25,6 +25,13 @@ export class XClient {
       return false;
     }
 
+    // Check for placeholder values
+    if (config.xApiKey.includes('your-api-key') || 
+        config.xAccessToken.includes('your-access-token')) {
+      logger.warn('X/Twitter credentials still using placeholder values. Skipping X integration.');
+      return false;
+    }
+
     try {
       this.client = new TwitterApi({
         appKey: config.xApiKey,

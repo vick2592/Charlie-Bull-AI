@@ -10,6 +10,8 @@ import { socialMediaQueue } from './socialMediaQueue.js';
 import { blueskyClient } from './blueskyClient.js';
 import { xClient } from './xClient.js';
 import { generateWithGemini } from './geminiClient.js';
+import { generateContextualResponse, formatForX, formatForBluesky } from './responseFormatter.js';
+import { knowledgeBase } from './knowledgeBase.js';
 import { DEFAULT_SCHEDULE } from '../types/social.js';
 import type { Platform } from '../types/social.js';
 
@@ -233,15 +235,35 @@ export class SocialMediaScheduler {
   }
 
   /**
-   * Generate post content using Gemini
+   * Generate post content using Gemini with knowledge base
    */
   private async generatePostContent(timeOfDay: string): Promise<string | null> {
     try {
-      const prompt = `Generate a short, engaging social media post for Charlie Bull token. 
-Time of day: ${timeOfDay}. 
-Keep it under 280 characters.
-Be friendly, informative, and community-focused.
-Don't use hashtags excessively.`;
+      const { project, roadmap } = knowledgeBase;
+      const currentPhase = roadmap.find(p => !p.completed);
+      
+      const prompt = `You are Charlie Bull, a friendly cross-chain cryptocurrency project mascot. Generate a short, engaging social media post for ${timeOfDay}.
+
+Context about Charlie Bull:
+- ${project.description}
+- Current phase: ${currentPhase?.title} - ${currentPhase?.description}
+- Cross-chain token across 9+ blockchains
+- Educational focus, community-driven
+- Built on Base L2
+
+Requirements:
+- Keep it under 280 characters (for X/Twitter)
+- Be friendly, informative, and community-focused
+- Educational or updates about cross-chain DeFi
+- Can mention current roadmap phase
+- Use 1-2 emojis maximum (🐂 fits the brand)
+- NO direct URLs or hashtags
+- Conversational tone, not salesy
+
+Examples of good posts:
+- "Good morning crypto fam! 🐂 Did you know Charlie Bull bridges 9+ blockchains? Cross-chain DeFi made simple!"
+- "Building in public! Our AI integration is live and learning from the community every day 🐂"
+- "Cross-chain transfers don't have to be complicated. We're here to make DeFi accessible for everyone! 🐂"`;
 
       const response = await generateWithGemini([
         { role: 'user', content: prompt }
@@ -258,8 +280,8 @@ Don't use hashtags excessively.`;
    */
   private async respondToInteraction(interaction: any): Promise<void> {
     try {
-      // Generate reply using Gemini
-      const replyContent = await this.generateReplyContent(interaction.content);
+      // Generate reply using Gemini with platform awareness
+      const replyContent = await this.generateReplyContent(interaction.content, interaction.platform);
       if (!replyContent) {
         logger.warn({ interactionId: interaction.id }, 'Failed to generate reply');
         return;
@@ -294,19 +316,61 @@ Don't use hashtags excessively.`;
   }
 
   /**
-   * Generate reply content using Gemini
+   * Generate reply content using Gemini with knowledge base and platform awareness
    */
-  private async generateReplyContent(originalMessage: string): Promise<string | null> {
+  private async generateReplyContent(originalMessage: string, platform: Platform = 'x'): Promise<string | null> {
     try {
-      const prompt = `You received this message on social media: "${originalMessage}"
-Generate a friendly, helpful reply as Charlie Bull.
-Keep it under 280 characters.
-Be engaging and professional.`;
+      // First, check if it's a knowledge-based query
+      const contextResponse = generateContextualResponse(originalMessage, platform);
+      
+      // If it's a specific query we have context for, use that
+      const queryLower = originalMessage.toLowerCase();
+      if (queryLower.includes('tokenomics') || 
+          queryLower.includes('link') || 
+          queryLower.includes('roadmap') || 
+          queryLower.includes('chain')) {
+        return contextResponse.text;
+      }
+      
+      // Otherwise, generate a personalized response with Gemini
+      const { project } = knowledgeBase;
+      const platformGuidelines = platform === 'x' 
+        ? 'NO URLs. Be conversational. If they ask for links, say "check our LinkTree in bio" or "visit our website"'
+        : 'Links OK. Keep under 300 characters.';
+      
+      const prompt = `You received this message on ${platform}: "${originalMessage}"
+
+You are Charlie Bull, representing a cross-chain cryptocurrency project.
+
+About Charlie Bull:
+- ${project.description}
+- Cross-chain token across 9+ blockchains
+- Educational and community-focused
+- Built on Base L2
+
+Platform Guidelines (${platform}):
+${platformGuidelines}
+
+Generate a friendly, helpful reply as Charlie Bull:
+- Keep it under 280 characters
+- Be engaging and professional
+- Educational when appropriate
+- If they ask about tokenomics/links/tech, refer them appropriately
+- Use 1 emoji maximum (🐂 fits the brand)
+- Sound natural and conversational, not robotic
+
+Reply:`;
 
       const response = await generateWithGemini([
         { role: 'user', content: prompt }
       ]);
-      return response.text || null;
+      
+      // Format the response for the specific platform
+      const formatted = platform === 'x' 
+        ? formatForX(response.text || '')
+        : formatForBluesky(response.text || '');
+      
+      return formatted.text || null;
     } catch (error) {
       logger.error({ error }, 'Error generating reply content');
       return null;

@@ -1,5 +1,6 @@
 import { ChatMessage } from '../types/chat.js';
 import { config } from '../lib/config.js';
+import { knowledgeBase, getTokenomicsInfo, getAllSocialHandles } from './knowledgeBase.js';
 
 const NAME = config.charlieName || 'Charlie';
 const CREATOR = config.charlieCreator || 'Charlie Bull';
@@ -12,27 +13,89 @@ const TOKENOMICS_EXTRA = (config.tokenomicsExtra || '').trim();
 
 function buildTokenomicsSection(): string {
   const lines: string[] = [];
-  // Core CHAR description (static narrative + dynamic address if provided)
-  lines.push('Tokenomics knowledge (concise, do not speculate):');
-  const charLineParts = [
-    'CHAR is the primary community token on Base L2. Total supply is allocated as:'
-  ];
-  if (CHAR_ADDRESS) charLineParts.push(`On-chain address (Base): ${CHAR_ADDRESS}`);
-  lines.push(charLineParts.join(' '));
-  // Allocation table (use full numbers for accuracy)
-  lines.push('Allocation Table (full numbers):');
-  lines.push('- Liquidity: 50% = 210,345,000,000 tokens (DEX liquidity pools)');
-  lines.push('- Community: 35% = 147,241,500,000 tokens (community airdrop)');
-  lines.push('- Team & Dev: 15% = 63,103,500,000 tokens (IP & project expansion)');
-  lines.push('The sum reflects 100% of the current defined supply distribution. If users ask about vesting/lockups and details are not public, clarify that specifics may be pending official documentation.');
-  lines.push('BULL mechanic (future event): At the launch of the prospective BULL token, a defined 1,000,000,000 CHAR tranche may be locked and later burned ONLY if BULL "graduates" (e.g., meets success criteria such as pump.fun graduation). Until that event, do not imply ongoing permanent locking or guaranteed burns.');
-  if (BULL_ADDRESS) {
-    lines.push(`BULL token address (if deployed): ${BULL_ADDRESS}`);
-  } else {
-    lines.push('BULL token not yet deployed (no contract address); clarify status if asked.');
+  const { tokenomics, project, technology, roadmap, socialLinks } = knowledgeBase;
+  
+  lines.push('=== CHARLIE BULL PROJECT KNOWLEDGE ===');
+  lines.push('');
+  
+  // Project Overview
+  lines.push('PROJECT OVERVIEW:');
+  lines.push(project.description);
+  lines.push('Mission: ' + project.mission);
+  lines.push('');
+  
+  // Tokenomics (Enhanced with knowledge base)
+  lines.push('TOKENOMICS ($CHAR):');
+  lines.push(`Total Supply: ${tokenomics.totalSupply} tokens`);
+  lines.push('Allocation:');
+  lines.push(`• ${tokenomics.allocation.liquidity.percentage}% (${tokenomics.allocation.liquidity.tokens}) - ${tokenomics.allocation.liquidity.description}`);
+  lines.push(`• ${tokenomics.allocation.community.percentage}% (${tokenomics.allocation.community.tokens}) - ${tokenomics.allocation.community.description}`);
+  lines.push(`• ${tokenomics.allocation.teamDev.percentage}% (${tokenomics.allocation.teamDev.tokens}) - ${tokenomics.allocation.teamDev.description}`);
+  lines.push('');
+  
+  // Important notes
+  lines.push('IMPORTANT NOTES:');
+  tokenomics.notes.forEach(note => lines.push(`• ${note}`));
+  if (CHAR_ADDRESS) lines.push(`• $CHAR Contract Address (Base): ${CHAR_ADDRESS}`);
+  if (BULL_ADDRESS) lines.push(`• $BULL Token Address: ${BULL_ADDRESS}`);
+  lines.push('');
+  
+  // Technology
+  lines.push('TECHNOLOGY:');
+  lines.push(`• Primary Chain: ${technology.primaryChain}`);
+  lines.push(`• Cross-Chain: ${technology.crossChainProtocols.join(', ')}`);
+  lines.push(`• Supported Chains: ${technology.supportedChains.join(', ')}`);
+  lines.push('');
+  
+  // Roadmap (Current Status)
+  lines.push('ROADMAP STATUS:');
+  const currentPhase = roadmap.find(p => !p.completed) || roadmap[0];
+  lines.push(`Current Phase: ${currentPhase.quarter} - ${currentPhase.title}`);
+  lines.push(`Status: ${currentPhase.description}`);
+  lines.push('Key Milestones:');
+  roadmap.forEach(phase => {
+    const status = phase.completed ? '✓' : '○';
+    lines.push(`${status} ${phase.quarter}: ${phase.title}`);
+  });
+  lines.push('');
+  
+  // Social Links & Resources
+  lines.push('OFFICIAL LINKS & RESOURCES:');
+  lines.push(`• Website: ${socialLinks.website}`);
+  lines.push(`• Documentation: ${socialLinks.docs}`);
+  lines.push(`• LinkTree: ${socialLinks.linktree}`);
+  lines.push('');
+  lines.push('Social Media:');
+  lines.push(`• X/Twitter: @CharlieBullArt`);
+  lines.push(`• Bluesky: @charliebull.art`);
+  lines.push(`• Telegram: Charlie Bull Community`);
+  lines.push(`• TikTok: @charliebullart`);
+  lines.push(`• Medium Blog: ${socialLinks.medium}`);
+  lines.push(`• LinkedIn: ${socialLinks.linkedin}`);
+  lines.push(`• GitHub: ${socialLinks.github}`);
+  lines.push(`• Email: ${socialLinks.email}`);
+  lines.push('');
+  
+  // Response Guidelines
+  lines.push('RESPONSE GUIDELINES BY PLATFORM:');
+  lines.push('• X/Twitter: NO direct URLs. Use conversational references ("check our docs", "visit our website", "LinkTree in bio")');
+  lines.push('• Bluesky: Links OK but keep concise (300 char limit)');
+  lines.push('• Telegram: Full responses with markdown formatting');
+  lines.push('• Website: Detailed, comprehensive answers');
+  lines.push('');
+  
+  lines.push('COMPLIANCE & SAFETY:');
+  lines.push('• Never promise price action or financial returns');
+  lines.push('• Encourage DYOR (Do Your Own Research)');
+  lines.push('• Emphasize risks in DeFi and cryptocurrency');
+  lines.push('• Direct to official documentation for technical details');
+  lines.push('• If asked for investment advice, clarify you provide education only');
+  
+  if (TOKENOMICS_EXTRA) {
+    lines.push('');
+    lines.push(`Additional Context: ${TOKENOMICS_EXTRA}`);
   }
-  lines.push('Never promise price action. Provide neutral, educational, risk-aware explanations only.');
-  if (TOKENOMICS_EXTRA) lines.push(`Extra tokenomics context: ${TOKENOMICS_EXTRA}`);
+  
   return lines.join('\n');
 }
 
