@@ -1,9 +1,21 @@
 # Charlie AI Server (Gemini Powered)
 
-Fastify + TypeScript microservice exposing `POST /v1/chat` backed by Gemini, providing a persona-driven DeFi assistant named **Charlie**.
+Fastify + TypeScript microservice exposing `POST /v1/chat` backed by Gemini, providing a persona-driven DeFi assistant named **Charlie**. Now featuring automated social media management for Bluesky and X/Twitter!
 
 ## Status
-Scaffolding in progress. Core features to be added next: config validation, memory store, rate limiting, safety filter, persona enforcement, Gemini wrapper, chat route.
+✅ **Production Ready** - Core features implemented:
+- ✅ Config validation (zod)
+- ✅ Memory store with session management
+- ✅ Rate limiting (session + global)
+- ✅ Safety filter
+- ✅ Persona prompt with knowledge base integration
+- ✅ Gemini client wrapper with fallback models
+- ✅ /v1/chat route with platform-specific responses
+- ✅ Telegram bot integration
+- ✅ **Social Media Automation** (Bluesky & X/Twitter)
+- ✅ Automated posting scheduler (2 posts/day)
+- ✅ Intelligent reply system (3 replies/day)
+- ✅ Comprehensive knowledge base (tokenomics, roadmap, social links)
 
 ## Quick Start (Dev)
 
@@ -25,16 +37,97 @@ curl -s localhost:8080/healthz
 ```
 
 ## Endpoints
-| Method | Path      | Description |
-|--------|-----------|-------------|
-| GET    | /healthz  | Lightweight liveness probe that does not touch Gemini; returns `{ "status": "ok" }`. Useful for Docker/Kubernetes readiness & uptime checks. |
-| POST   | /v1/chat  | Chat with Charlie (persona + safety + rate limiting + memory). |
+| Method | Path                    | Description |
+|--------|-------------------------|-------------|
+| GET    | /healthz                | Lightweight liveness probe that does not touch Gemini; returns `{ "status": "ok" }`. |
+| POST   | /v1/chat                | Chat with Charlie (persona + safety + rate limiting + memory). |
+| GET    | /social/status          | View social media automation status and daily quotas. |
+| GET    | /social/queue           | View pending interactions queue for both platforms. |
+| POST   | /social/test/bluesky    | Test Bluesky posting functionality. |
+| POST   | /social/test/x          | Test X/Twitter posting functionality. |
 
 ### Health Endpoint Details
 `GET /healthz` is intentionally minimal so that infrastructure (load balancers, k8s probes, uptime monitors) can call it frequently without generating model usage or mutating any state. If this returns a non-200, something is fundamentally wrong with the service process (crashed dependencies, event loop blocked, etc.). In future you could expand it to include dependency checks (Redis, DB) but keep it fast (<5ms) and avoid external network calls.
 
 ## Env Vars
-See `.env.example`. `GEMINI_API_KEY` optional during development (returns mocked responses if absent in future implementation).
+See `.env.example` or `deploy.env.example`. Key variables:
+
+### Core Configuration
+- `GEMINI_API_KEY` - Your Google Gemini API key (required)
+- `GEMINI_MODEL` - Primary model (default: `gemini-2.0-flash`)
+- `GEMINI_MODELS` - Comma-separated fallback models
+- `PORT` - Server port (default: 8080)
+
+### Social Media Integration
+- `BLUESKY_IDENTIFIER` - Your Bluesky handle (e.g., `charliebull.art`)
+- `BLUESKY_PASSWORD` - App password from https://bsky.app/settings/app-passwords
+- `X_API_KEY` - Twitter API key
+- `X_API_SECRET` - Twitter API secret
+- `X_ACCESS_TOKEN` - Twitter access token
+- `X_ACCESS_SECRET` - Twitter access token secret
+- `SOCIAL_POSTS_ENABLED` - Enable automated posting (default: `false`)
+- `SOCIAL_REPLIES_ENABLED` - Enable automated replies (default: `false`)
+
+### Telegram Bot
+- `TELEGRAM_BOT_TOKEN` - Bot token from BotFather
+- `TELEGRAM_POLLING` - Enable polling (default: `false`)
+- `TELEGRAM_ALLOWED_USER_IDS` - Comma-separated user ID allowlist
+
+## Social Media Automation
+
+Charlie can automatically manage your Bluesky and X/Twitter accounts with intelligent, context-aware posts and replies.
+
+### Features
+- **Automated Posting**: 2 posts per day
+  - Morning post at 8:00 AM
+  - Evening post alternating between 5:00 PM and 9:00 PM
+- **Intelligent Replies**: Up to 3 replies per day
+  - Monitors mentions and interactions every 30 minutes
+  - Context-aware responses using Gemini AI
+- **Platform-Specific Formatting**:
+  - X/Twitter: No external URLs (platform restrictions)
+  - Bluesky: Full link support with rich formatting
+- **Rate Limiting**: Built-in daily quotas prevent spam
+- **Queue Management**: Automatic cleanup at 1:00 AM daily
+
+### Setup
+
+1. **Bluesky Configuration**:
+   - Go to https://bsky.app/settings/app-passwords
+   - Create a new app password
+   - Add to `.env`: `BLUESKY_IDENTIFIER=your.handle` and `BLUESKY_PASSWORD=xxxx-xxxx-xxxx-xxxx`
+
+2. **X/Twitter Configuration**:
+   - Create app at https://developer.twitter.com/en/portal/dashboard
+   - Enable OAuth 1.0a with Read and Write permissions
+   - Add API keys to `.env`
+
+3. **Enable Automation**:
+   ```bash
+   SOCIAL_POSTS_ENABLED=true
+   SOCIAL_REPLIES_ENABLED=true
+   ```
+
+### Monitoring
+
+Check automation status:
+```bash
+curl http://localhost:8080/social/status
+```
+
+View pending interactions:
+```bash
+curl http://localhost:8080/social/queue
+```
+
+### Schedule
+
+All times are in your server's timezone:
+- `00:00` - Reset daily queue
+- `08:00` - Morning post
+- `17:00/21:00` - Evening post (alternates daily)
+- `*/30 * * * *` - Check for new interactions
+- `01:00` - Cleanup processed interactions
 
 ## Frontend Integration (Preview Snippet)
 Next.js `/app/api/chat/route.ts` (will finalize after server route implemented):
@@ -99,14 +192,24 @@ Commands and moderation:
 - Greetings: Charlie greets new members after they pass verification. We queue the welcome when members join and send it the first time they speak. This avoids greeting bots and keeps the chat clean with Shieldy.
 
 ## Roadmap
-- [ ] Config validation (zod)
-- [ ] Memory store with truncation meta
-- [ ] Rate limiting (session + global)
-- [ ] Safety filter
-- [ ] Persona prompt & emoji rule
-- [ ] Gemini client wrapper + fallback
-- [ ] /v1/chat route
+- [x] Config validation (zod)
+- [x] Memory store with truncation meta
+- [x] Rate limiting (session + global)
+- [x] Safety filter
+- [x] Persona prompt & emoji rule
+- [x] Gemini client wrapper + fallback
+- [x] /v1/chat route
+- [x] Bluesky integration with automated posting
+- [x] X/Twitter integration with automated posting
+- [x] Social media scheduler with cron jobs
+- [x] Intelligent reply system with rate limiting
+- [x] Comprehensive knowledge base (tokenomics, roadmap, links)
+- [x] Platform-specific response formatting
+- [x] Telegram bot integration
 - [ ] Tests (vitest)
+- [ ] Blog post management system
+- [ ] Analytics and performance monitoring
+- [ ] Advanced sentiment analysis for replies
 
 ## License
 Proprietary (adjust as needed).
