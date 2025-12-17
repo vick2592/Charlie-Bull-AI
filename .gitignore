@@ -25,3 +25,4 @@ pnpm-debug.log*
 .cspellcache
 .eslintcache
 .nyc_output
+*.tar.gz
