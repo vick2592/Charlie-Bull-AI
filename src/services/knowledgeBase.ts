@@ -113,8 +113,11 @@ export const knowledgeBase: KnowledgeBase = {
     },
     notes: [
       'After launch, 1B tokens from liquidity will be purchased and locked for Pump.fun',
-      '$BULL educational token (1B) on Pump.fun for educational streams',
-      'Upon $BULL graduation, holders get exclusive access to NFT collection and early opportunities',
+      '$BULL educational token (1B supply) launching Q3 2026 on Pump.fun',
+      'Pre-graduation: $BULL used for educational streams, 1B $CHAR tokens locked',
+      'Post-graduation: LP locked, 1B $CHAR permanently burned (deflationary event), NFT access unlocked',
+      'CHAR/BULL swap pair on Raydium after Base/Solana bridge deployment',
+      'Upon $BULL graduation, holders get exclusive access to NFT collection on Solana',
     ],
   },
 
@@ -149,9 +152,9 @@ export const knowledgeBase: KnowledgeBase = {
     },
     {
       quarter: 'Q2 2026',
-      title: 'Token Generation Event',
+      title: 'Token Generation Event (TGE)',
       description:
-        'Launch $CHAR token with initial liquidity on Base L2 (pending Base-Solana bridge finalization)',
+        'Official $CHAR TGE on Base network via Aerodrome DEX, followed by cross-chain expansion to all 9 supported chains',
       completed: false,
     },
     {
@@ -163,15 +166,16 @@ export const knowledgeBase: KnowledgeBase = {
     },
     {
       quarter: 'Q3 2026',
-      title: '$BULL Educational Token',
+      title: '$BULL Educational Token Launch',
       description:
-        'Launch 1B $BULL tokens on Pump.fun for educational streams. Upon graduation, grants holders exclusive access to NFT minting and early opportunities',
+        'Launch 1B $BULL tokens on Pump.fun after $CHAR TGE. Pre-graduation: educational streams with 1B $CHAR locked. Post-graduation: 1B $CHAR burned, NFT access unlocked, CHAR/BULL swap on Raydium',
       completed: false,
     },
     {
       quarter: 'Q4 2026',
-      title: 'NFT Launch & IP Development',
-      description: "Launch Charlie's Angels NFT collection on Solana and develop Charlie Bull IP",
+      title: 'NFT Collection & IP Development',
+      description:
+        'Launch exclusive NFT collection on Solana for $BULL graduates, develop Charlie Bull IP and brand expansion',
       completed: false,
     },
   ],
@@ -198,14 +202,13 @@ export const knowledgeBase: KnowledgeBase = {
   },
 
   blogPosts: [
-    // Add blog posts here as they're published
-    // Example format:
-    // {
-    //   title: "Introducing Charlie Bull: The Future of Cross-Chain",
-    //   url: "https://medium.com/@charliebullart/...",
-    //   date: "2025-12-01",
-    //   summary: "Our vision for accessible cross-chain cryptocurrency"
-    // }
+    {
+      title: 'Charlie Bull ($CHAR) Tokenomics: The Blueprint for a DeFi Revolution',
+      url: 'https://medium.com/@charliebullart/charlie-bull-char-tokenomics-the-blueprint-for-a-defi-revolution',
+      date: '2025-12-15',
+      summary:
+        'Comprehensive breakdown of $CHAR tokenomics: 420.69B supply across 9 chains, 50% liquidity, 35% community rewards, $BULL educational token integration, and cross-chain architecture.',
+    },
   ],
 };
 
