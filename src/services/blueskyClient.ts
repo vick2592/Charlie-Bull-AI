@@ -105,7 +105,9 @@ export class BlueskyClient {
   async replyToPost(
     postUri: string,
     postCid: string,
-    content: string
+    content: string,
+    rootUri?: string,
+    rootCid?: string
   ): Promise<SocialReply | null> {
     await this.ensureAuthenticated();
 
@@ -118,17 +120,22 @@ export class BlueskyClient {
       const repo = uriParts[2];
       const rkey = uriParts[4];
 
+      // Use provided root, or default to parent if not in a thread
+      const replyRoot = rootUri && rootCid 
+        ? { uri: rootUri, cid: rootCid }
+        : { uri: postUri, cid: postCid };
+
       const response = await this.agent.post({
         text: rt.text,
         facets: rt.facets,
         reply: {
-          root: { uri: postUri, cid: postCid },
+          root: replyRoot,
           parent: { uri: postUri, cid: postCid }
         },
         createdAt: new Date().toISOString()
       });
 
-      logger.info({ uri: response.uri, replyTo: postUri }, 'Replied on Bluesky');
+      logger.info({ uri: response.uri, replyTo: postUri, root: replyRoot.uri }, 'Replied on Bluesky');
 
       return {
         id: response.uri,
@@ -160,6 +167,10 @@ export class BlueskyClient {
         if ((notif.reason === 'mention' || notif.reason === 'reply') && !notif.isRead) {
           const record = notif.record as any;
           
+          // Capture root post info for threaded replies
+          const rootUri = record.reply?.root?.uri || notif.uri;
+          const rootCid = record.reply?.root?.cid || notif.cid;
+          
           interactions.push({
             id: notif.uri,
             platform: 'bluesky',
@@ -168,7 +179,9 @@ export class BlueskyClient {
             authorId: notif.author.did,
             content: record.text || '',
             postId: notif.uri,
-            cid: notif.cid, // Add CID for replying
+            cid: notif.cid, // CID of the post we're replying to (parent)
+            rootUri, // URI of the root post in the thread
+            rootCid, // CID of the root post in the thread
             timestamp: new Date(notif.indexedAt),
             processed: false // Always false for unread notifications
           });

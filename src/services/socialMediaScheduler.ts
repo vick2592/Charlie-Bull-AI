@@ -312,8 +312,10 @@ Examples of good posts:
         }
         const reply = await blueskyClient.replyToPost(
           interaction.postId,
-          interaction.cid, // Use the CID from notification
-          replyContent
+          interaction.cid, // Parent post CID
+          replyContent,
+          interaction.rootUri, // Root post URI for threading
+          interaction.rootCid  // Root post CID for threading
         );
         success = !!reply;
       } else if (interaction.platform === 'x') {

@@ -22,7 +22,9 @@ export interface SocialInteraction {
   authorId: string;
   content: string;
   postId: string;
-  cid?: string; // Bluesky CID for replying
+  cid?: string; // Bluesky CID for replying (parent post)
+  rootUri?: string; // Bluesky root post URI for threaded replies
+  rootCid?: string; // Bluesky root post CID for threaded replies
   timestamp: Date;
   processed: boolean;
 }
