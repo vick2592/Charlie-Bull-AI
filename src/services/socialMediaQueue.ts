@@ -18,20 +18,25 @@ export class SocialMediaQueue {
   private pendingPosts: SocialPost[] = [];
   private sentReplies: SocialReply[] = [];
   private dailyQuotas: Map<string, DailyQuota> = new Map();
+  
+  // Track platform-specific reply counts
+  private platformReplyCounts: Map<string, { bluesky: number; x: number }> = new Map();
 
   // Platform-specific limits
+  // Bluesky allows 11,666 creates/day (3 points each), we use conservative limits
+  // X Basic tier: 25 posts/day (user limit), but we stay very conservative
   private readonly PLATFORM_LIMITS = {
     bluesky: {
-      posts: 4,    // Bluesky is more permissive
-      replies: 5
+      posts: 10,   // Conservative limit (max 11,666/day on Bluesky)
+      replies: 20  // Well under Bluesky's 11,666/day limit
     },
     x: {
-      posts: 2,    // X has stricter limits (especially with basic tier)
-      replies: 3
+      posts: 2,    // X Basic tier has 25/day user limit, stay conservative
+      replies: 3   // X Basic tier rate limited
     },
-    global: {      // Global combined limit for scheduled posts
-      posts: 2,
-      replies: 3
+    global: {      // Global combined limit for scheduled posts only
+      posts: 2,    // Keep scheduled posts at 2/day (8am + afternoon)
+      replies: 3   // Legacy compatibility
     }
   };
 
@@ -53,6 +58,11 @@ export class SocialMediaQueue {
         repliesLimit: this.PLATFORM_LIMITS.global.replies
       });
       logger.info({ date: today }, 'Initialized daily quota');
+    }
+    
+    // Initialize platform-specific reply counts
+    if (!this.platformReplyCounts.has(today)) {
+      this.platformReplyCounts.set(today, { bluesky: 0, x: 0 });
     }
   }
 
@@ -81,11 +91,22 @@ export class SocialMediaQueue {
   }
 
   /**
-   * Check if we can reply today
+   * Check if we can reply today (global quota)
    */
   canReply(): boolean {
     const quota = this.getDailyQuota();
     return quota.repliesCount < quota.repliesLimit;
+  }
+  
+  /**
+   * Check if we can reply on specific platform today
+   */
+  canReplyOnPlatform(platform: Platform): boolean {
+    const today = this.getTodayString();
+    this.initializeDailyQuota();
+    const counts = this.platformReplyCounts.get(today)!;
+    const limit = this.PLATFORM_LIMITS[platform].replies;
+    return counts[platform] < limit;
   }
 
   /**
@@ -98,12 +119,27 @@ export class SocialMediaQueue {
   }
 
   /**
-   * Increment reply count
+   * Increment reply count (both global and platform-specific)
    */
-  incrementReplyCount(): void {
+  incrementReplyCount(platform?: Platform): void {
     const quota = this.getDailyQuota();
     quota.repliesCount++;
-    logger.info({ count: quota.repliesCount, limit: quota.repliesLimit }, 'Incremented reply count');
+    
+    // Also track platform-specific
+    if (platform) {
+      const today = this.getTodayString();
+      const counts = this.platformReplyCounts.get(today)!;
+      counts[platform]++;
+      logger.info({ 
+        platform,
+        count: counts[platform], 
+        limit: this.PLATFORM_LIMITS[platform].replies,
+        globalCount: quota.repliesCount,
+        globalLimit: quota.repliesLimit
+      }, 'Incremented reply count');
+    } else {
+      logger.info({ count: quota.repliesCount, limit: quota.repliesLimit }, 'Incremented reply count');
+    }
   }
 
   /**
@@ -118,7 +154,11 @@ export class SocialMediaQueue {
       postsLimit: this.PLATFORM_LIMITS.global.posts,
       repliesLimit: this.PLATFORM_LIMITS.global.replies
     });
-    logger.info('Daily quota reset');
+    
+    // Reset platform-specific counts
+    this.platformReplyCounts.set(today, { bluesky: 0, x: 0 });
+    
+    logger.info('Daily quota reset (global and platform-specific)');
   }
 
   /**

@@ -60,8 +60,12 @@ export function formatForX(content: string, includeLinks: boolean = false): Form
     return 'our website'; // Generic fallback
   });
 
-  // Smart truncation to 280 characters
-  text = smartTruncate(text, 280);
+  // Add AI signature
+  const signature = '\n\n- Charlie AI 🐶';
+  const maxContentLength = 280 - signature.length;
+  
+  // Smart truncation to fit within 280 chars with signature
+  text = smartTruncate(text, maxContentLength) + signature;
 
   return {
     text,
@@ -85,8 +89,12 @@ export function formatForBluesky(content: string, includeLinks: boolean = true):
     });
   }
 
-  // Smart truncation to 300 characters
-  text = smartTruncate(text, 300);
+  // Add AI signature
+  const signature = '\n\n- Charlie AI 🐶';
+  const maxContentLength = 300 - signature.length;
+  
+  // Smart truncation to fit within 300 chars with signature
+  text = smartTruncate(text, maxContentLength) + signature;
 
   return {
     text,

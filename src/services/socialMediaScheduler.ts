@@ -234,10 +234,14 @@ export class SocialMediaScheduler {
         }
       }
 
-      // Process immediate replies if quota allows
-      const pending = socialMediaQueue.getPendingInteractions().slice(0, 3);
+      // Process immediate replies if platform quota allows
+      const pending = socialMediaQueue.getPendingInteractions();
       for (const interaction of pending) {
-        if (!socialMediaQueue.canReply()) break;
+        // Check platform-specific quota
+        if (!socialMediaQueue.canReplyOnPlatform(interaction.platform)) {
+          logger.info({ platform: interaction.platform }, 'Platform reply quota reached, skipping');
+          continue;
+        }
         await this.respondToInteraction(interaction);
       }
     } catch (error) {
@@ -322,7 +326,7 @@ Examples of good posts:
 
       if (success) {
         socialMediaQueue.markInteractionProcessed(interaction.id);
-        socialMediaQueue.incrementReplyCount();
+        socialMediaQueue.incrementReplyCount(interaction.platform);
         logger.info({ interactionId: interaction.id, platform: interaction.platform }, 'Replied to interaction');
       }
     } catch (error) {
