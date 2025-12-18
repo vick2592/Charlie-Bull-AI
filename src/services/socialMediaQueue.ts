@@ -19,6 +19,22 @@ export class SocialMediaQueue {
   private sentReplies: SocialReply[] = [];
   private dailyQuotas: Map<string, DailyQuota> = new Map();
 
+  // Platform-specific limits
+  private readonly PLATFORM_LIMITS = {
+    bluesky: {
+      posts: 4,    // Bluesky is more permissive
+      replies: 5
+    },
+    x: {
+      posts: 2,    // X has stricter limits (especially with basic tier)
+      replies: 3
+    },
+    global: {      // Global combined limit for scheduled posts
+      posts: 2,
+      replies: 3
+    }
+  };
+
   constructor() {
     this.initializeDailyQuota();
   }
@@ -33,8 +49,8 @@ export class SocialMediaQueue {
         date: today,
         postsCount: 0,
         repliesCount: 0,
-        postsLimit: 2, // RATE_LIMITS.dailyPosts
-        repliesLimit: 3 // RATE_LIMITS.dailyReplies
+        postsLimit: this.PLATFORM_LIMITS.global.posts,
+        repliesLimit: this.PLATFORM_LIMITS.global.replies
       });
       logger.info({ date: today }, 'Initialized daily quota');
     }
@@ -99,8 +115,8 @@ export class SocialMediaQueue {
       date: today,
       postsCount: 0,
       repliesCount: 0,
-      postsLimit: 2,
-      repliesLimit: 3
+      postsLimit: this.PLATFORM_LIMITS.global.posts,
+      repliesLimit: this.PLATFORM_LIMITS.global.replies
     });
     logger.info('Daily quota reset');
   }

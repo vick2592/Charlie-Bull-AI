@@ -22,6 +22,7 @@ export interface SocialInteraction {
   authorId: string;
   content: string;
   postId: string;
+  cid?: string; // Bluesky CID for replying
   timestamp: Date;
   processed: boolean;
 }

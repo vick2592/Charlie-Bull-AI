@@ -14,6 +14,35 @@ export interface FormattedResponse {
 }
 
 /**
+ * Smart truncation at word or sentence boundaries
+ */
+function smartTruncate(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text;
+
+  // Try to cut at last sentence within limit
+  const truncated = text.substring(0, maxLength - 3);
+  const lastPeriod = truncated.lastIndexOf('.');
+  const lastExclamation = truncated.lastIndexOf('!');
+  const lastQuestion = truncated.lastIndexOf('?');
+  
+  const lastSentence = Math.max(lastPeriod, lastExclamation, lastQuestion);
+  
+  // If we have a sentence boundary in the last 50 chars, use it
+  if (lastSentence > maxLength - 50) {
+    return truncated.substring(0, lastSentence + 1);
+  }
+  
+  // Otherwise cut at last word boundary
+  const lastSpace = truncated.lastIndexOf(' ');
+  if (lastSpace > 0) {
+    return truncated.substring(0, lastSpace) + '...';
+  }
+  
+  // Fallback: hard cut with ellipsis
+  return truncated + '...';
+}
+
+/**
  * Format response for X/Twitter (minimal links, conversational)
  */
 export function formatForX(content: string, includeLinks: boolean = false): FormattedResponse {
@@ -31,10 +60,8 @@ export function formatForX(content: string, includeLinks: boolean = false): Form
     return 'our website'; // Generic fallback
   });
 
-  // Ensure under 280 characters
-  if (text.length > 280) {
-    text = text.substring(0, 277) + '...';
-  }
+  // Smart truncation to 280 characters
+  text = smartTruncate(text, 280);
 
   return {
     text,
@@ -58,10 +85,8 @@ export function formatForBluesky(content: string, includeLinks: boolean = true):
     });
   }
 
-  // Bluesky has a 300 character limit
-  if (text.length > 300) {
-    text = text.substring(0, 297) + '...';
-  }
+  // Smart truncation to 300 characters
+  text = smartTruncate(text, 300);
 
   return {
     text,

@@ -156,8 +156,8 @@ export class BlueskyClient {
       const interactions: SocialInteraction[] = [];
 
       for (const notif of notifications.data.notifications) {
-        // Only process mentions and replies
-        if (notif.reason === 'mention' || notif.reason === 'reply') {
+        // Only process mentions and replies that haven't been read
+        if ((notif.reason === 'mention' || notif.reason === 'reply') && !notif.isRead) {
           const record = notif.record as any;
           
           interactions.push({
@@ -168,13 +168,19 @@ export class BlueskyClient {
             authorId: notif.author.did,
             content: record.text || '',
             postId: notif.uri,
+            cid: notif.cid, // Add CID for replying
             timestamp: new Date(notif.indexedAt),
-            processed: notif.isRead
+            processed: false // Always false for unread notifications
           });
         }
       }
 
-      logger.info(`Fetched ${interactions.length} interactions from Bluesky`);
+      // Mark all fetched notifications as seen to avoid refetching
+      if (interactions.length > 0) {
+        await this.markAsRead(notifications.data.notifications[0].indexedAt);
+      }
+
+      logger.info(`Fetched ${interactions.length} unread interactions from Bluesky`);
       return interactions;
     } catch (error) {
       logger.error({ error }, 'Failed to fetch Bluesky interactions');

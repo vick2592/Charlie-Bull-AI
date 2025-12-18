@@ -113,13 +113,13 @@ export class SocialMediaScheduler {
    * Schedule interaction checking every 30 minutes
    */
   private scheduleInteractionCheck(): void {
-    const job = cron.schedule('*/30 * * * *', async () => {
+    const job = cron.schedule('*/15 * * * *', async () => {
       logger.info('Checking for new interactions');
       await this.checkInteractions();
     });
 
     this.jobs.push(job);
-    logger.info('Scheduled interaction checking every 30 minutes');
+    logger.info('Scheduled interaction checking every 15 minutes');
   }
 
   /**
@@ -210,16 +210,27 @@ export class SocialMediaScheduler {
       // Fetch from Bluesky
       if (config.blueskyIdentifier) {
         const bskyInteractions = await blueskyClient.fetchInteractions();
+        logger.info(`Fetched ${bskyInteractions.length} interactions from Bluesky`);
         for (const interaction of bskyInteractions) {
           socialMediaQueue.addPendingInteraction(interaction);
         }
       }
 
-      // Fetch from X
+      // Fetch from X (with rate limit protection)
       if (config.xApiKey) {
-        const xInteractions = await xClient.fetchInteractions();
-        for (const interaction of xInteractions) {
-          socialMediaQueue.addPendingInteraction(interaction);
+        try {
+          const xInteractions = await xClient.fetchInteractions();
+          logger.info(`Fetched ${xInteractions.length} interactions from X/Twitter`);
+          for (const interaction of xInteractions) {
+            socialMediaQueue.addPendingInteraction(interaction);
+          }
+        } catch (error: any) {
+          // Don't let X rate limits break the entire flow
+          if (error?.code === 429 || error?.status === 429) {
+            logger.warn('X/Twitter rate limit hit, skipping X checks this cycle');
+          } else {
+            logger.error({ error }, 'Error fetching X/Twitter interactions');
+          }
         }
       }
 
@@ -291,9 +302,13 @@ Examples of good posts:
 
       // Send reply
       if (interaction.platform === 'bluesky') {
+        if (!interaction.cid) {
+          logger.error({ interactionId: interaction.id }, 'Missing CID for Bluesky reply');
+          return;
+        }
         const reply = await blueskyClient.replyToPost(
           interaction.postId,
-          interaction.id, // CID
+          interaction.cid, // Use the CID from notification
           replyContent
         );
         success = !!reply;
@@ -308,7 +323,7 @@ Examples of good posts:
       if (success) {
         socialMediaQueue.markInteractionProcessed(interaction.id);
         socialMediaQueue.incrementReplyCount();
-        logger.info({ interactionId: interaction.id }, 'Replied to interaction');
+        logger.info({ interactionId: interaction.id, platform: interaction.platform }, 'Replied to interaction');
       }
     } catch (error) {
       logger.error({ error, interactionId: interaction.id }, 'Error responding to interaction');
