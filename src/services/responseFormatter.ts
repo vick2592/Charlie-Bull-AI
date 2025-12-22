@@ -60,8 +60,8 @@ export function formatForX(content: string, includeLinks: boolean = false): Form
     return 'our website'; // Generic fallback
   });
 
-  // Add AI signature
-  const signature = '\n\n- Charlie AI 🐶';
+  // Add AI signature with paw and dog emojis (Charlie is a puppy, not a cow!)
+  const signature = '\n\n- Charlie AI 🐾🐶 #CharlieBull';
   const maxContentLength = 280 - signature.length;
   
   // Smart truncation to fit within 280 chars with signature
@@ -89,8 +89,8 @@ export function formatForBluesky(content: string, includeLinks: boolean = true):
     });
   }
 
-  // Add AI signature
-  const signature = '\n\n- Charlie AI 🐶';
+  // Add AI signature with paw and dog emojis (Charlie is a puppy, not a cow!)
+  const signature = '\n\n- Charlie AI 🐾🐶 #CharlieBull';
   const maxContentLength = 300 - signature.length;
   
   // Smart truncation to fit within 300 chars with signature

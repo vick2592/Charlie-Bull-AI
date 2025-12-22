@@ -125,6 +125,15 @@ export class BlueskyClient {
         ? { uri: rootUri, cid: rootCid }
         : { uri: postUri, cid: postCid };
 
+      logger.info({ 
+        postUri, 
+        postCid, 
+        rootUri, 
+        rootCid, 
+        replyRoot,
+        contentLength: content.length 
+      }, 'Attempting Bluesky reply');
+
       const response = await this.agent.post({
         text: rt.text,
         facets: rt.facets,
