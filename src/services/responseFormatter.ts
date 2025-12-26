@@ -15,35 +15,37 @@ export interface FormattedResponse {
 
 /**
  * Smart truncation at word or sentence boundaries
+ * NEVER adds "..." - always provides clean cuts
  */
 function smartTruncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
 
   // Try to cut at last sentence within limit
-  const truncated = text.substring(0, maxLength - 3);
+  const truncated = text.substring(0, maxLength);
   const lastPeriod = truncated.lastIndexOf('.');
   const lastExclamation = truncated.lastIndexOf('!');
   const lastQuestion = truncated.lastIndexOf('?');
   
   const lastSentence = Math.max(lastPeriod, lastExclamation, lastQuestion);
   
-  // If we have a sentence boundary in the last 50 chars, use it
-  if (lastSentence > maxLength - 50) {
+  // If we have a sentence boundary in a reasonable position, use it
+  if (lastSentence > maxLength * 0.7) {
     return truncated.substring(0, lastSentence + 1);
   }
   
-  // Otherwise cut at last word boundary
+  // Otherwise cut at last word boundary (no ellipsis)
   const lastSpace = truncated.lastIndexOf(' ');
-  if (lastSpace > 0) {
-    return truncated.substring(0, lastSpace) + '...';
+  if (lastSpace > maxLength * 0.5) {
+    return truncated.substring(0, lastSpace);
   }
   
-  // Fallback: hard cut with ellipsis
-  return truncated + '...';
+  // Fallback: hard cut at maxLength (no ellipsis)
+  return truncated;
 }
 
 /**
  * Format response for X/Twitter (minimal links, conversational)
+ * Using 300 char limit to match Bluesky (more room than Twitter's 280)
  */
 export function formatForX(content: string, includeLinks: boolean = false): FormattedResponse {
   let text = content;
@@ -62,9 +64,9 @@ export function formatForX(content: string, includeLinks: boolean = false): Form
 
   // Add AI signature with paw and dog emojis (Charlie is a puppy, not a cow!)
   const signature = '\n\n- Charlie AI 🐾🐶 #CharlieBull';
-  const maxContentLength = 280 - signature.length;
+  const maxContentLength = 300 - signature.length; // 269 chars for content
   
-  // Smart truncation to fit within 280 chars with signature
+  // Smart truncation to fit within 300 chars with signature
   text = smartTruncate(text, maxContentLength) + signature;
 
   return {

@@ -18,6 +18,7 @@ import type { Platform } from '../types/social.js';
 export class SocialMediaScheduler {
   private jobs: cron.ScheduledTask[] = [];
   private currentAfternoonIndex = 0; // For alternating 5pm/9pm
+  private dailyXPostTime: 'morning' | 'afternoon' | 'evening' | null = null; // Random daily X post time
 
   /**
    * Initialize all scheduled jobs
@@ -39,6 +40,9 @@ export class SocialMediaScheduler {
       await xClient.authenticate();
     }
 
+    // Pick random X post time for today
+    this.pickDailyXPostTime();
+
     // Schedule queue processing at midnight (00:00)
     this.scheduleQueueProcessing();
 
@@ -58,12 +62,26 @@ export class SocialMediaScheduler {
   }
 
   /**
+   * Pick a random time slot for X's daily post (morning, afternoon, or evening)
+   * X FREE tier limits: 17/day + 100/month cap
+   * Strategy: 1 post + 2 replies/day = 3/day = 90/month (under 100 cap!)
+   */
+  private pickDailyXPostTime(): void {
+    const times: ('morning' | 'afternoon' | 'evening')[] = ['morning', 'afternoon', 'evening'];
+    this.dailyXPostTime = times[Math.floor(Math.random() * times.length)];
+    logger.info({ xPostTime: this.dailyXPostTime }, 'Selected random X post time for today');
+  }
+
+  /**
    * Schedule queue processing at midnight
    */
   private scheduleQueueProcessing(): void {
     const job = cron.schedule('0 0 * * *', async () => {
       logger.info('Running midnight queue processing');
       await this.processQueueAtMidnight();
+      
+      // Pick new random time for X posts
+      this.pickDailyXPostTime();
     });
 
     this.jobs.push(job);
@@ -110,7 +128,9 @@ export class SocialMediaScheduler {
   }
 
   /**
-   * Schedule interaction checking every 30 minutes
+   * Schedule interaction checking
+   * X FREE tier: 1 req/15min for mentions (very strict!)
+   * Check every 15 minutes to stay within limits
    */
   private scheduleInteractionCheck(): void {
     const job = cron.schedule('*/15 * * * *', async () => {
@@ -162,6 +182,8 @@ export class SocialMediaScheduler {
 
   /**
    * Create a scheduled post
+   * Bluesky: Posts 2x/day (morning + afternoon/evening) - 11,666/day limit
+   * X FREE tier: Posts 1x/day at random time - 3/day total (100/month cap!)
    */
   private async createScheduledPost(timeOfDay: 'morning' | 'afternoon' | 'evening'): Promise<void> {
     try {
@@ -177,28 +199,37 @@ export class SocialMediaScheduler {
         return;
       }
 
-      // Post to Bluesky first (with formatting)
+      // Post to Bluesky (always posts at scheduled times)
       if (config.blueskyIdentifier) {
         const formattedContent = formatForBluesky(content);
         const post = await blueskyClient.createPost(formattedContent.text);
         if (post) {
           socialMediaQueue.incrementPostCount();
+          logger.info({ timeOfDay, platform: 'bluesky' }, 'Posted scheduled content to Bluesky');
         }
       }
 
-      // Post to X if enabled (with formatting)
+      // Post to X ONLY if this is the randomly selected time for today
       if (config.xApiKey && config.socialPostsEnabled) {
-        const formattedContent = formatForX(content);
-        const post = await xClient.createPost(formattedContent.text);
-        if (post) {
-          // Only increment if not already incremented by Bluesky
-          if (!config.blueskyIdentifier) {
-            socialMediaQueue.incrementPostCount();
+        if (this.dailyXPostTime === timeOfDay) {
+          const formattedContent = formatForX(content);
+          const post = await xClient.createPost(formattedContent.text);
+          if (post) {
+            // Only increment if not already incremented by Bluesky
+            if (!config.blueskyIdentifier) {
+              socialMediaQueue.incrementPostCount();
+            }
+            logger.info({ timeOfDay, platform: 'x' }, 'Posted scheduled content to X (daily post)');
           }
+        } else {
+          logger.info({ 
+            timeOfDay, 
+            selectedTime: this.dailyXPostTime 
+          }, 'Skipping X post - not the selected time for today');
         }
       }
 
-      logger.info({ timeOfDay, content }, 'Posted scheduled content');
+      logger.info({ timeOfDay, content }, 'Completed scheduled post');
     } catch (error) {
       logger.error({ error }, 'Error creating scheduled post');
     }
@@ -253,18 +284,25 @@ export class SocialMediaScheduler {
 
   /**
    * Generate post content using Gemini with knowledge base
+   * Includes retry logic if response is too long
    */
-  private async generatePostContent(timeOfDay: string): Promise<string | null> {
+  private async generatePostContent(timeOfDay: string, retryCount: number = 0): Promise<string | null> {
     try {
       const { project, roadmap } = knowledgeBase;
       const currentPhase = roadmap.find(p => !p.completed);
       
+      // Both platforms now use 300 char limit total
+      const signature = '\n\n- Charlie AI 🐾🐶 #CharlieBull'; // 31 chars
+      const maxContentChars = 300 - signature.length; // 269 chars for content
+      
       // Varied greetings for different times
       const greetings = {
-        morning: ['Morning fam', 'Rise and shine', 'Good morning', 'This morning', 'Afternoon builders', 'Hey everyone'],
+        morning: ['Morning fam', 'Rise and shine', 'Good morning', 'This morning', 'Hey everyone'],
         afternoon: ['Afternoon fam', 'Hey crypto community', 'Good afternoon', 'This afternoon', 'Yo builders', 'What\'s up fam'],
         evening: ['Evening everyone', 'Good evening', 'Night owls', 'This evening', 'Hey fam', 'Crypto never sleeps']
       };
+      
+      const retryNote = retryCount > 0 ? `\n\nIMPORTANT: Previous response was TOO LONG. Make this response SHORTER and more concise!` : '';
       
       const prompt = `You are Charlie Bull, a playful puppy mascot for a cross-chain cryptocurrency project. You're energetic, friendly, and love to educate! Generate a short, engaging social media post for ${timeOfDay}.
 
@@ -282,16 +320,18 @@ Your Personality:
 - Loves crypto, DeFi, and cross-chain tech
 - Never boring or corporate
 
-Requirements:
-- Keep it under 240 characters (signature will be added)
-- Start with varied greetings: ${greetings[timeOfDay as keyof typeof greetings].join(', ')}
+CRITICAL REQUIREMENTS:
+- MAXIMUM ${maxContentChars} characters (signature will be added automatically)
+- DO NOT use any emojis (signature adds 🐾🐶 #CharlieBull automatically)
+- DO NOT add hashtags (signature adds #CharlieBull)
+- DO NOT add your own sign-off (signature is automatic)
+- Start with varied greetings like: ${greetings[timeOfDay as keyof typeof greetings].join(', ')}
 - DON'T always use "Good morning/afternoon/evening" - mix it up!
 - Be engaging and conversational, not formal
 - Educational nuggets about cross-chain DeFi or current roadmap
 - Can tell a quick story or ask engaging questions
-- NO emojis (signature handles that)
-- NO URLs or hashtags (signature handles that)
 - Make it feel like a real person posting, not a bot
+- NEVER let your post get cut off mid-sentence${retryNote}
 
 Post Style Ideas:
 - Quick educational facts about cross-chain tech
@@ -301,17 +341,40 @@ Post Style Ideas:
 - Roadmap updates in an exciting way
 - "Did you know?" style facts
 
-Examples of Charlie's voice:
-- "Morning fam! 🌅 Working on something cool today - making cross-chain swaps even smoother. DeFi shouldn't be complicated, right?"
+Examples (WITHOUT emojis or signatures - those are added automatically):
+- "Morning fam! Working on something cool today - making cross-chain swaps even smoother. DeFi shouldn't be complicated, right?"
 - "Afternoon builders! Quick question - what's your biggest challenge with cross-chain transfers? I'm here to help break it down!"
-- "This evening's thought: Why should you need 5 different wallets for 5 different chains? That's exactly what we're solving at Charlie Bull!"
+- "This evening's thought: Why should you need 5 different wallets for 5 different chains? That's exactly what we're solving!"
 
-Generate ONE post that fits this ${timeOfDay} vibe. Be creative and engaging!`;
+Generate ONE post for ${timeOfDay} (${maxContentChars} chars max, no emojis, no hashtags):`;
 
       const response = await generateWithGemini([
         { role: 'user', content: prompt }
       ]);
-      return response.text || null;
+      
+      const responseText = (response.text || '').trim();
+      
+      // Log if response is too long
+      if (responseText.length > maxContentChars) {
+        logger.warn({ 
+          timeOfDay,
+          responseLength: responseText.length, 
+          maxLength: maxContentChars,
+          retryCount,
+          content: responseText.substring(0, 100) + '...'
+        }, 'Gemini post too long');
+        
+        // Retry up to 2 times
+        if (retryCount < 2) {
+          logger.info({ timeOfDay, retryCount: retryCount + 1 }, 'Retrying with shorter prompt');
+          return this.generatePostContent(timeOfDay, retryCount + 1);
+        }
+        
+        // If still too long after retries, we'll truncate (logged as warning)
+        logger.warn({ timeOfDay }, 'Max retries reached, will truncate post');
+      }
+      
+      return responseText;
     } catch (error) {
       logger.error({ error }, 'Error generating post content');
       return null;
@@ -366,30 +429,49 @@ Generate ONE post that fits this ${timeOfDay} vibe. Be creative and engaging!`;
 
   /**
    * Generate reply content using Gemini with knowledge base and platform awareness
+   * Includes retry logic if response is too long
    */
-  private async generateReplyContent(originalMessage: string, platform: Platform = 'x'): Promise<string | null> {
+  private async generateReplyContent(originalMessage: string, platform: Platform = 'x', retryCount: number = 0): Promise<string | null> {
     try {
       // First, check if it's a knowledge-based query
       const contextResponse = generateContextualResponse(originalMessage, platform);
       
-      // If it's a specific query we have context for, use that
+      // If it's a specific query we have context for, use that (already formatted)
       const queryLower = originalMessage.toLowerCase();
       if (queryLower.includes('tokenomics') || 
           queryLower.includes('link') || 
           queryLower.includes('roadmap') || 
           queryLower.includes('chain')) {
-        return contextResponse.text;
+        // Format the contextual response for the platform
+        const formatted = platform === 'x' 
+          ? formatForX(contextResponse.text)
+          : formatForBluesky(contextResponse.text);
+        return formatted.text;
       }
       
       // Otherwise, generate a personalized response with Gemini
       const { project } = knowledgeBase;
+      
+      // BOTH platforms now use 300 char limit total
+      const signature = '\n\n- Charlie AI 🐾🐶 #CharlieBull'; // 31 chars
+      const maxContentChars = 300 - signature.length; // 269 chars for content
+      
       const platformGuidelines = platform === 'x' 
-        ? 'NO URLs. Be conversational. If they ask for links, say "check our LinkTree in bio" or "visit our website"'
-        : 'Links OK. Keep under 300 characters.';
+        ? `X/Twitter Guidelines:
+- MAXIMUM ${maxContentChars} characters (signature will be added automatically)
+- NO URLs or links - X doesn't allow them from us
+- If they ask for links, say "check our LinkTree in bio" or "visit charliebull.art"
+- Be concise and conversational`
+        : `Bluesky Guidelines:
+- MAXIMUM ${maxContentChars} characters (signature will be added automatically)
+- Links are OK if helpful
+- Keep it friendly and informative`;
+      
+      const retryNote = retryCount > 0 ? `\n\nIMPORTANT: Previous response was ${retryCount > 0 ? 'TOO LONG' : ''}. Make this response SHORTER and more concise!` : '';
       
       const prompt = `You received this message on ${platform}: "${originalMessage}"
 
-You are Charlie Bull, representing a cross-chain cryptocurrency project.
+You are Charlie Bull, a playful puppy mascot for a cross-chain cryptocurrency project.
 
 About Charlie Bull:
 - ${project.description}
@@ -397,29 +479,59 @@ About Charlie Bull:
 - Educational and community-focused
 - Built on Base L2
 
-Platform Guidelines (${platform}):
 ${platformGuidelines}
 
-Generate a friendly, helpful reply as Charlie Bull:
-- Keep it under 280 characters
-- Be engaging and professional
-- Educational when appropriate
-- If they ask about tokenomics/links/tech, refer them appropriately
-- Use 1 emoji maximum (🐂 fits the brand)
-- Sound natural and conversational, not robotic
+CRITICAL REQUIREMENTS:
+- Your reply must be EXACTLY ${maxContentChars} characters or LESS
+- DO NOT use any emojis (signature handles that)
+- DO NOT add your own sign-off (signature is added automatically)
+- Be helpful, friendly, and conversational
+- If the response is too long, prioritize the most important information
+- NEVER let your response get cut off mid-sentence${retryNote}
 
-Reply:`;
+Generate ONLY the reply text (no signatures, no emojis):`;
 
       const response = await generateWithGemini([
         { role: 'user', content: prompt }
       ]);
       
+      const responseText = (response.text || '').trim();
+      
+      // Check if response is too long BEFORE formatting
+      if (responseText.length > maxContentChars) {
+        logger.warn({ 
+          platform, 
+          responseLength: responseText.length, 
+          maxLength: maxContentChars,
+          retryCount,
+          content: responseText.substring(0, 100) + '...'
+        }, 'Gemini response too long');
+        
+        // Retry up to 2 times
+        if (retryCount < 2) {
+          logger.info({ platform, retryCount: retryCount + 1 }, 'Retrying with shorter prompt');
+          return this.generateReplyContent(originalMessage, platform, retryCount + 1);
+        }
+        
+        // If still too long after retries, we'll truncate (logged as warning)
+        logger.warn({ platform }, 'Max retries reached, will truncate response');
+      }
+      
       // Format the response for the specific platform
       const formatted = platform === 'x' 
-        ? formatForX(response.text || '')
-        : formatForBluesky(response.text || '');
+        ? formatForX(responseText)
+        : formatForBluesky(responseText);
       
-      return formatted.text || null;
+      // Final validation
+      if (formatted.characterCount > 300) {
+        logger.error({ 
+          platform, 
+          finalLength: formatted.characterCount,
+          content: formatted.text
+        }, 'ERROR: Formatted response exceeds 300 chars!');
+      }
+      
+      return formatted.text;
     } catch (error) {
       logger.error({ error }, 'Error generating reply content');
       return null;
