@@ -19,23 +19,23 @@ export class SocialMediaQueue {
   private sentReplies: SocialReply[] = [];
   private dailyQuotas: Map<string, DailyQuota> = new Map();
   
-  // Track platform-specific reply counts
-  private platformReplyCounts: Map<string, { bluesky: number; x: number }> = new Map();
+  // Track platform-specific post AND reply counts separately
+  private platformCounts: Map<string, { bluesky: { posts: number; replies: number }; x: { posts: number; replies: number } }> = new Map();
 
   // Platform-specific limits
   // Bluesky allows 11,666 creates/day (3 points each), we use conservative limits
   // X FREE tier: 17/day + 100/month cap = must stay at ~3 posts/day!
   private readonly PLATFORM_LIMITS = {
     bluesky: {
-      posts: 10,   // Conservative limit (max 11,666/day on Bluesky)
+      posts: 2,    // Bluesky: 2 scheduled posts/day (morning + afternoon/evening)
       replies: 20  // Well under Bluesky's 11,666/day limit
     },
     x: {
       posts: 1,    // X FREE tier: 1 scheduled post/day (random time)
       replies: 2   // X FREE tier: 2 replies/day (1 post + 2 replies = 3/day = 90/month)
     },
-    global: {      // Global combined limit for scheduled posts only
-      posts: 2,    // Bluesky gets 2/day (morning + afternoon/evening)
+    global: {      // Global combined limit (for backwards compatibility)
+      posts: 3,    // Total: Bluesky 2 + X 1 = 3/day
       replies: 2   // Match X's stricter monthly limit (100/month cap!)
     }
   };
@@ -60,9 +60,12 @@ export class SocialMediaQueue {
       logger.info({ date: today }, 'Initialized daily quota');
     }
     
-    // Initialize platform-specific reply counts
-    if (!this.platformReplyCounts.has(today)) {
-      this.platformReplyCounts.set(today, { bluesky: 0, x: 0 });
+    // Initialize platform-specific post and reply counts
+    if (!this.platformCounts.has(today)) {
+      this.platformCounts.set(today, { 
+        bluesky: { posts: 0, replies: 0 },
+        x: { posts: 0, replies: 0 }
+      });
     }
   }
 
@@ -83,11 +86,22 @@ export class SocialMediaQueue {
   }
 
   /**
-   * Check if we can post today
+   * Check if we can post today (global - backwards compatibility)
    */
   canPost(): boolean {
     const quota = this.getDailyQuota();
     return quota.postsCount < quota.postsLimit;
+  }
+
+  /**
+   * Check if we can post on specific platform today
+   */
+  canPostOnPlatform(platform: Platform): boolean {
+    const today = this.getTodayString();
+    this.initializeDailyQuota();
+    const counts = this.platformCounts.get(today)!;
+    const limit = this.PLATFORM_LIMITS[platform].posts;
+    return counts[platform].posts < limit;
   }
 
   /**
@@ -104,18 +118,33 @@ export class SocialMediaQueue {
   canReplyOnPlatform(platform: Platform): boolean {
     const today = this.getTodayString();
     this.initializeDailyQuota();
-    const counts = this.platformReplyCounts.get(today)!;
+    const counts = this.platformCounts.get(today)!;
     const limit = this.PLATFORM_LIMITS[platform].replies;
-    return counts[platform] < limit;
+    return counts[platform].replies < limit;
   }
 
   /**
-   * Increment post count
+   * Increment post count (global and platform-specific)
    */
-  incrementPostCount(): void {
+  incrementPostCount(platform?: Platform): void {
     const quota = this.getDailyQuota();
     quota.postsCount++;
-    logger.info({ count: quota.postsCount, limit: quota.postsLimit }, 'Incremented post count');
+    
+    // Also track platform-specific
+    if (platform) {
+      const today = this.getTodayString();
+      const counts = this.platformCounts.get(today)!;
+      counts[platform].posts++;
+      logger.info({ 
+        platform,
+        count: counts[platform].posts, 
+        limit: this.PLATFORM_LIMITS[platform].posts,
+        globalCount: quota.postsCount,
+        globalLimit: quota.postsLimit
+      }, 'Incremented post count');
+    } else {
+      logger.info({ count: quota.postsCount, limit: quota.postsLimit }, 'Incremented post count');
+    }
   }
 
   /**
@@ -128,11 +157,11 @@ export class SocialMediaQueue {
     // Also track platform-specific
     if (platform) {
       const today = this.getTodayString();
-      const counts = this.platformReplyCounts.get(today)!;
-      counts[platform]++;
+      const counts = this.platformCounts.get(today)!;
+      counts[platform].replies++;
       logger.info({ 
         platform,
-        count: counts[platform], 
+        count: counts[platform].replies, 
         limit: this.PLATFORM_LIMITS[platform].replies,
         globalCount: quota.repliesCount,
         globalLimit: quota.repliesLimit
@@ -156,7 +185,10 @@ export class SocialMediaQueue {
     });
     
     // Reset platform-specific counts
-    this.platformReplyCounts.set(today, { bluesky: 0, x: 0 });
+    this.platformCounts.set(today, { 
+      bluesky: { posts: 0, replies: 0 },
+      x: { posts: 0, replies: 0 }
+    });
     
     logger.info('Daily quota reset (global and platform-specific)');
   }

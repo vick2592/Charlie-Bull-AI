@@ -18,9 +18,10 @@ async function buildServer() {
   };
   await app.register(cors, corsOptions);
 
+  // Register routes with /api prefix
   registerHealthRoute(app);
   registerChatRoute(app);
-  await app.register(socialRoutes);
+  await app.register(socialRoutes, { prefix: '/api' });
 
   app.setErrorHandler((error: any, _req: any, reply: any) => {
     app.log.error({ err: error }, 'unhandled_error');

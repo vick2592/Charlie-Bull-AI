@@ -129,17 +129,25 @@ export class SocialMediaScheduler {
 
   /**
    * Schedule interaction checking
-   * X FREE tier: 1 req/15min for mentions (very strict!)
-   * Check every 15 minutes to stay within limits
+   * Bluesky: Every 15 minutes (11,666/day limit - very generous)
+   * X FREE tier: Every 2 hours (conserve quota - only 17 posts/day total!)
    */
   private scheduleInteractionCheck(): void {
+    // Check Bluesky + process interactions every 15 minutes
     const job = cron.schedule('*/15 * * * *', async () => {
       logger.info('Checking for new interactions');
-      await this.checkInteractions();
+      await this.checkBlueskyInteractions();
+      await this.processInteractions();
     });
 
-    this.jobs.push(job);
-    logger.info('Scheduled interaction checking every 15 minutes');
+    // Check X every 2 hours only (12 checks/day vs 96/day saves massive quota)
+    const xJob = cron.schedule('0 */2 * * *', async () => {
+      logger.info('Checking for X interactions (2-hour interval to conserve quota)');
+      await this.checkXInteractions();
+    });
+
+    this.jobs.push(job, xJob);
+    logger.info('Scheduled interaction checking (Bluesky: every 15min, X: every 2hrs)');
   }
 
   /**
@@ -187,45 +195,53 @@ export class SocialMediaScheduler {
    */
   private async createScheduledPost(timeOfDay: 'morning' | 'afternoon' | 'evening'): Promise<void> {
     try {
-      if (!socialMediaQueue.canPost()) {
-        logger.info('Daily post limit reached');
+      // Determine which platforms should post using platform-specific quotas
+      const shouldPostBluesky = config.blueskyIdentifier && socialMediaQueue.canPostOnPlatform('bluesky');
+      const shouldPostX = config.xApiKey && config.socialPostsEnabled && 
+                          this.dailyXPostTime === timeOfDay && 
+                          socialMediaQueue.canPostOnPlatform('x');
+
+      // Exit early only if NEITHER platform should post
+      if (!shouldPostBluesky && !shouldPostX) {
+        if (!socialMediaQueue.canPostOnPlatform('bluesky') && config.blueskyIdentifier) {
+          logger.info('Daily post limit reached for Bluesky (2/day)');
+        }
+        if (!shouldPostX && config.xApiKey && this.dailyXPostTime === timeOfDay) {
+          logger.info('Daily post limit reached for X (1/day)');
+        }
+        if (config.xApiKey && this.dailyXPostTime !== timeOfDay) {
+          logger.info({ 
+            timeOfDay, 
+            selectedTime: this.dailyXPostTime 
+          }, 'Skipping X post - not the selected time for today');
+        }
         return;
       }
 
-      // Generate content using Gemini
+      // Generate content using Gemini (only if at least one platform will post)
       const content = await this.generatePostContent(timeOfDay);
       if (!content) {
         logger.warn('Failed to generate post content');
         return;
       }
 
-      // Post to Bluesky (always posts at scheduled times)
-      if (config.blueskyIdentifier) {
+      // Post to Bluesky (if within daily limit: 2/day)
+      if (shouldPostBluesky) {
         const formattedContent = formatForBluesky(content);
         const post = await blueskyClient.createPost(formattedContent.text);
         if (post) {
-          socialMediaQueue.incrementPostCount();
+          socialMediaQueue.incrementPostCount('bluesky');
           logger.info({ timeOfDay, platform: 'bluesky' }, 'Posted scheduled content to Bluesky');
         }
       }
 
-      // Post to X ONLY if this is the randomly selected time for today
-      if (config.xApiKey && config.socialPostsEnabled) {
-        if (this.dailyXPostTime === timeOfDay) {
-          const formattedContent = formatForX(content);
-          const post = await xClient.createPost(formattedContent.text);
-          if (post) {
-            // Only increment if not already incremented by Bluesky
-            if (!config.blueskyIdentifier) {
-              socialMediaQueue.incrementPostCount();
-            }
-            logger.info({ timeOfDay, platform: 'x' }, 'Posted scheduled content to X (daily post)');
-          }
-        } else {
-          logger.info({ 
-            timeOfDay, 
-            selectedTime: this.dailyXPostTime 
-          }, 'Skipping X post - not the selected time for today');
+      // Post to X (if this is the randomly selected time for today, 1/day)
+      if (shouldPostX) {
+        const formattedContent = formatForX(content);
+        const post = await xClient.createPost(formattedContent.text);
+        if (post) {
+          socialMediaQueue.incrementPostCount('x');
+          logger.info({ timeOfDay, platform: 'x' }, 'Posted scheduled content to X (daily post)');
         }
       }
 
@@ -236,7 +252,65 @@ export class SocialMediaScheduler {
   }
 
   /**
-   * Check for new interactions
+   * Check for Bluesky interactions only
+   */
+  private async checkBlueskyInteractions(): Promise<void> {
+    try {
+      if (config.blueskyIdentifier) {
+        const bskyInteractions = await blueskyClient.fetchInteractions();
+        logger.info(`Fetched ${bskyInteractions.length} interactions from Bluesky`);
+        for (const interaction of bskyInteractions) {
+          socialMediaQueue.addPendingInteraction(interaction);
+        }
+      }
+    } catch (error) {
+      logger.error({ error }, 'Error checking Bluesky interactions');
+    }
+  }
+
+  /**
+   * Check for X interactions only (called less frequently to conserve quota)
+   */
+  private async checkXInteractions(): Promise<void> {
+    try {
+      if (config.xApiKey) {
+        const xInteractions = await xClient.fetchInteractions();
+        logger.info(`Fetched ${xInteractions.length} interactions from X/Twitter`);
+        for (const interaction of xInteractions) {
+          socialMediaQueue.addPendingInteraction(interaction);
+        }
+      }
+    } catch (error: any) {
+      if (error?.code === 429 || error?.status === 429) {
+        logger.warn('X/Twitter rate limit hit, will retry in 2 hours');
+      } else {
+        logger.error({ error }, 'Error fetching X/Twitter interactions');
+      }
+    }
+  }
+
+  /**
+   * Process pending interactions from queue
+   */
+  private async processInteractions(): Promise<void> {
+    try {
+      const pending = socialMediaQueue.getPendingInteractions();
+      for (const interaction of pending) {
+        // Check platform-specific quota
+        if (!socialMediaQueue.canReplyOnPlatform(interaction.platform)) {
+          logger.info({ platform: interaction.platform }, 'Platform reply quota reached, skipping');
+          continue;
+        }
+        await this.respondToInteraction(interaction);
+      }
+    } catch (error) {
+      logger.error({ error }, 'Error processing interactions');
+    }
+  }
+
+  /**
+   * Check for new interactions (LEGACY - now split into platform-specific methods)
+   * @deprecated Use checkBlueskyInteractions and checkXInteractions instead
    */
   private async checkInteractions(): Promise<void> {
     try {
