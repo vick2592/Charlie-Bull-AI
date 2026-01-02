@@ -173,14 +173,15 @@ export class SocialMediaScheduler {
       // Reset daily quota
       socialMediaQueue.resetDailyQuota();
 
-      // Process pending interactions (up to 3 replies)
+      // Process pending interactions (check platform-specific limits)
       const pendingInteractions = socialMediaQueue.getPendingInteractions();
       logger.info({ count: pendingInteractions.length }, 'Processing pending interactions');
 
-      for (const interaction of pendingInteractions.slice(0, 3)) {
-        if (!socialMediaQueue.canReply()) {
-          logger.info('Daily reply limit reached');
-          break;
+      for (const interaction of pendingInteractions) {
+        // Check platform-specific quota instead of global
+        if (!socialMediaQueue.canReplyOnPlatform(interaction.platform)) {
+          logger.info({ platform: interaction.platform }, 'Platform reply quota reached, skipping');
+          continue;
         }
 
         await this.respondToInteraction(interaction);

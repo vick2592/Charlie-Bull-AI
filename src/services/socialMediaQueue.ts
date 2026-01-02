@@ -34,9 +34,9 @@ export class SocialMediaQueue {
       posts: 1,    // X FREE tier: 1 scheduled post/day (random time)
       replies: 1   // X FREE tier: 1 reply/day (check 2 + post 1 + reply 1 = 4/day = 124/month, slightly over but acceptable)
     },
-    global: {      // Global combined limit (for backwards compatibility)
+    global: {      // Global combined limit (DEPRECATED - use platform-specific limits)
       posts: 3,    // Total: Bluesky 2 + X 1 = 3/day
-      replies: 1   // Match X's stricter monthly limit (100/month cap!)
+      replies: 21  // Total: Bluesky 20 + X 1 = 21/day (NOTE: Code uses platform-specific checks now)
     }
   };
 
