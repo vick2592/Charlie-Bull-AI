@@ -130,7 +130,7 @@ export class SocialMediaScheduler {
   /**
    * Schedule interaction checking
    * Bluesky: Every 15 minutes (11,666/day limit - very generous)
-   * X FREE tier: Every 2 hours (conserve quota - only 17 posts/day total!)
+   * X FREE tier: Once per day at noon (100 calls/month total limit!)
    */
   private scheduleInteractionCheck(): void {
     // Check Bluesky + process interactions every 15 minutes
@@ -140,14 +140,16 @@ export class SocialMediaScheduler {
       await this.processInteractions();
     });
 
-    // Check X every 2 hours only (12 checks/day vs 96/day saves massive quota)
-    const xJob = cron.schedule('0 */2 * * *', async () => {
-      logger.info('Checking for X interactions (2-hour interval to conserve quota)');
+    // Check X once per day at noon EST (12:00 PM) - FREE tier has 100 calls/month!
+    // 1 check/day × 2 API calls + 1 post/day = 3 calls/day = 93 calls/month (under 100 limit)
+    const xJob = cron.schedule('0 12 * * *', async () => {
+      logger.info('Checking for X interactions (once daily at noon to stay under 100/month quota)');
       await this.checkXInteractions();
+      await this.processInteractions(); // Process any X interactions fetched
     });
 
     this.jobs.push(job, xJob);
-    logger.info('Scheduled interaction checking (Bluesky: every 15min, X: every 2hrs)');
+    logger.info('Scheduled interaction checking (Bluesky: every 15min, X: daily at noon)');
   }
 
   /**

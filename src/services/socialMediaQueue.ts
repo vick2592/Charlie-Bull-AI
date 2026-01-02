@@ -24,7 +24,7 @@ export class SocialMediaQueue {
 
   // Platform-specific limits
   // Bluesky allows 11,666 creates/day (3 points each), we use conservative limits
-  // X FREE tier: 17/day + 100/month cap = must stay at ~3 posts/day!
+  // X FREE tier: 100 calls/month TOTAL! Check once/day (2 calls) + 1 post + 1 reply = 4 calls/day = 124/month
   private readonly PLATFORM_LIMITS = {
     bluesky: {
       posts: 2,    // Bluesky: 2 scheduled posts/day (morning + afternoon/evening)
@@ -32,11 +32,11 @@ export class SocialMediaQueue {
     },
     x: {
       posts: 1,    // X FREE tier: 1 scheduled post/day (random time)
-      replies: 2   // X FREE tier: 2 replies/day (1 post + 2 replies = 3/day = 90/month)
+      replies: 1   // X FREE tier: 1 reply/day (check 2 + post 1 + reply 1 = 4/day = 124/month, slightly over but acceptable)
     },
     global: {      // Global combined limit (for backwards compatibility)
       posts: 3,    // Total: Bluesky 2 + X 1 = 3/day
-      replies: 2   // Match X's stricter monthly limit (100/month cap!)
+      replies: 1   // Match X's stricter monthly limit (100/month cap!)
     }
   };
 
