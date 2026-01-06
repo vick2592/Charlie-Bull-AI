@@ -21,6 +21,11 @@ export class SocialMediaQueue {
   
   // Track platform-specific post AND reply counts separately
   private platformCounts: Map<string, { bluesky: { posts: number; replies: number }; x: { posts: number; replies: number } }> = new Map();
+  
+  // Track X mentions we've already processed (prevents duplicates across sessions)
+  // X API doesn't have "read" status, so we track processed IDs for 7 days
+  private processedXMentions: Set<string> = new Set();
+  private xMentionCleanupDate: string = this.getTodayString();
 
   // Platform-specific limits
   // Bluesky allows 11,666 creates/day (3 points each), we use conservative limits
@@ -195,9 +200,16 @@ export class SocialMediaQueue {
 
   /**
    * Add interaction to pending queue
+   * For X: Also checks if we've processed this mention before (prevents duplicates)
    */
   addPendingInteraction(interaction: SocialInteraction): void {
-    // Check if already exists
+    // For X mentions, check if we've already processed this ID
+    if (interaction.platform === 'x' && this.processedXMentions.has(interaction.id)) {
+      logger.info({ id: interaction.id }, 'X mention already processed, skipping');
+      return;
+    }
+    
+    // Check if already exists in current pending queue
     const exists = this.pendingInteractions.some(i => i.id === interaction.id);
     if (!exists) {
       this.pendingInteractions.push(interaction);
@@ -221,12 +233,19 @@ export class SocialMediaQueue {
 
   /**
    * Mark interaction as processed
+   * For X: Also adds to processed set to prevent future duplicates
    */
   markInteractionProcessed(interactionId: string): void {
     const interaction = this.pendingInteractions.find(i => i.id === interactionId);
     if (interaction) {
       interaction.processed = true;
-      logger.info({ id: interactionId }, 'Marked interaction as processed');
+      
+      // For X, also track in processed set (prevents duplicate fetching)
+      if (interaction.platform === 'x') {
+        this.processedXMentions.add(interactionId);
+      }
+      
+      logger.info({ id: interactionId, platform: interaction.platform }, 'Marked interaction as processed');
     }
   }
 
@@ -295,6 +314,7 @@ export class SocialMediaQueue {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     const cutoffDate = sevenDaysAgo.toISOString().split('T')[0];
+    const today = this.getTodayString();
 
     // Clean old quotas
     for (const [date] of this.dailyQuotas) {
@@ -310,6 +330,17 @@ export class SocialMediaQueue {
 
     // Clean old replies
     this.sentReplies = this.sentReplies.filter(r => r.timestamp > sevenDaysAgo);
+    
+    // Clean processed X mentions every 7 days (prevent Set from growing forever)
+    // X mentions older than 7 days won't be refetched anyway (API returns recent only)
+    if (today !== this.xMentionCleanupDate) {
+      const daysSinceCleanup = Math.floor((new Date(today).getTime() - new Date(this.xMentionCleanupDate).getTime()) / (1000 * 60 * 60 * 24));
+      if (daysSinceCleanup >= 7) {
+        this.processedXMentions.clear();
+        this.xMentionCleanupDate = today;
+        logger.info('Cleared processed X mentions (7-day cleanup)');
+      }
+    }
 
     logger.info('Cleaned up old queue data');
   }

@@ -118,6 +118,8 @@ export class XClient {
 
   /**
    * Fetch mentions and interactions
+   * Note: X FREE tier has 100 posts/month retrieval cap!
+   * Fetching only 2 most recent = 2 posts/day × 31 = 62 posts/month (under 100 limit)
    */
   async fetchInteractions(): Promise<SocialInteraction[]> {
     await this.ensureAuthenticated();
@@ -125,7 +127,7 @@ export class XClient {
     try {
       const me = await this.client!.v2.me();
       const mentions = await this.client!.v2.userMentionTimeline(me.data.id, {
-        max_results: 50,
+        max_results: 2,  // FREE tier: 100 posts/month cap! Limit to 2 most recent mentions
         expansions: ['author_id', 'referenced_tweets.id'],
         'tweet.fields': ['created_at', 'conversation_id']
       });
