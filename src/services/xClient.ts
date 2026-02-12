@@ -11,6 +11,8 @@ import type { SocialPost, SocialInteraction, SocialReply } from '../types/social
 export class XClient {
   private client: TwitterApi | null = null;
   private authenticated: boolean = false;
+  private userId: string | null = null;
+  private freeTierLimited: boolean = false;
 
   constructor() {
     // Constructor will initialize when credentials are available
@@ -40,10 +42,11 @@ export class XClient {
         accessSecret: config.xAccessSecret,
       });
 
-      // Verify credentials
+      // Verify credentials and cache userId
       const user = await this.client.v2.me();
+      this.userId = user.data.id;
       this.authenticated = true;
-      logger.info({ username: user.data.username }, 'Successfully authenticated with X/Twitter');
+      logger.info({ username: user.data.username, userId: this.userId }, 'Successfully authenticated with X/Twitter');
       return true;
     } catch (error) {
       logger.error({ error }, 'Failed to authenticate with X/Twitter');
@@ -117,17 +120,40 @@ export class XClient {
   }
 
   /**
+   * Check if mention reading is available (requires Basic tier or higher)
+   */
+  isFreeTierLimited(): boolean {
+    return this.freeTierLimited;
+  }
+
+  /**
+   * Get cached user ID
+   */
+  getUserId(): string | null {
+    return this.userId;
+  }
+
+  /**
    * Fetch mentions and interactions
-   * Note: X FREE tier has 100 posts/month retrieval cap!
-   * Fetching only 2 most recent = 2 posts/day × 31 = 62 posts/month (under 100 limit)
+   * NOTE: userMentionTimeline requires Basic tier ($100/mo).
+   * Free tier will get a 403 - we detect this and flag it.
    */
   async fetchInteractions(): Promise<SocialInteraction[]> {
+    if (this.freeTierLimited) {
+      logger.info('Skipping X mention fetch - free tier does not support userMentionTimeline. Use manual reply endpoint instead.');
+      return [];
+    }
+
     await this.ensureAuthenticated();
 
     try {
-      const me = await this.client!.v2.me();
-      const mentions = await this.client!.v2.userMentionTimeline(me.data.id, {
-        max_results: 2,  // FREE tier: 100 posts/month cap! Limit to 2 most recent mentions
+      if (!this.userId) {
+        const me = await this.client!.v2.me();
+        this.userId = me.data.id;
+      }
+
+      const mentions = await this.client!.v2.userMentionTimeline(this.userId, {
+        max_results: 2,
         expansions: ['author_id', 'referenced_tweets.id'],
         'tweet.fields': ['created_at', 'conversation_id']
       });
@@ -150,20 +176,29 @@ export class XClient {
 
       logger.info(`Fetched ${interactions.length} interactions from X/Twitter`);
       return interactions;
-    } catch (error) {
-      logger.error({ error }, 'Failed to fetch X/Twitter interactions');
+    } catch (error: any) {
+      const status = error?.code || error?.status || error?.data?.status;
+      if (status === 403 || status === 401) {
+        this.freeTierLimited = true;
+        logger.warn('X API returned 403/401 on userMentionTimeline - this endpoint requires Basic tier ($100/mo). Free tier can only post tweets. Auto-reply disabled, use manual reply endpoint POST /api/social/reply/x instead.');
+      } else {
+        logger.error({ error }, 'Failed to fetch X/Twitter interactions');
+      }
       return [];
     }
   }
 
   /**
-   * Get account information
+   * Get account information (uses cached userId when available)
    */
   async getProfile() {
     await this.ensureAuthenticated();
 
     try {
       const user = await this.client!.v2.me();
+      if (!this.userId) {
+        this.userId = user.data.id;
+      }
       return user.data;
     } catch (error) {
       logger.error({ error }, 'Failed to fetch X/Twitter profile');

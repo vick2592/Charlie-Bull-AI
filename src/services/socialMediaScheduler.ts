@@ -133,19 +133,19 @@ export class SocialMediaScheduler {
    * X FREE tier: Once per day at noon (100 calls/month total limit!)
    */
   private scheduleInteractionCheck(): void {
-    // Check Bluesky + process interactions every 15 minutes
+    // Check Bluesky + process Bluesky interactions every 15 minutes
     const job = cron.schedule('*/15 * * * *', async () => {
-      logger.info('Checking for new interactions');
+      logger.info('Checking for new Bluesky interactions');
       await this.checkBlueskyInteractions();
-      await this.processInteractions();
+      await this.processInteractions('bluesky');
     });
 
     // Check X once per day at noon EST (12:00 PM) - FREE tier has 100 calls/month!
-    // 1 check/day × 2 API calls + 1 post/day = 3 calls/day = 93 calls/month (under 100 limit)
+    // 1 check/day × 1 API call (cached userId) + 1 post/day = 2 calls/day = 62 calls/month
     const xJob = cron.schedule('0 12 * * *', async () => {
       logger.info('Checking for X interactions (once daily at noon to stay under 100/month quota)');
       await this.checkXInteractions();
-      await this.processInteractions(); // Process any X interactions fetched
+      await this.processInteractions('x');
     });
 
     this.jobs.push(job, xJob);
@@ -294,12 +294,12 @@ export class SocialMediaScheduler {
 
   /**
    * Process pending interactions from queue
+   * @param platform - If provided, only process interactions for this platform
    */
-  private async processInteractions(): Promise<void> {
+  private async processInteractions(platform?: Platform): Promise<void> {
     try {
-      const pending = socialMediaQueue.getPendingInteractions();
+      const pending = socialMediaQueue.getPendingInteractions(platform);
       for (const interaction of pending) {
-        // Check platform-specific quota
         if (!socialMediaQueue.canReplyOnPlatform(interaction.platform)) {
           logger.info({ platform: interaction.platform }, 'Platform reply quota reached, skipping');
           continue;
