@@ -14,6 +14,19 @@ import { knowledgeBase } from '../services/knowledgeBase.js';
 import { logger } from '../lib/logger.js';
 import { config } from '../lib/config.js';
 
+/**
+ * Verify admin API key for write endpoints
+ */
+function requireAdminKey(request: any, reply: any): boolean {
+  if (!config.adminApiKey) return true; // No key configured = open (backwards compat)
+  const authHeader = request.headers.authorization;
+  if (!authHeader || authHeader !== `Bearer ${config.adminApiKey}`) {
+    reply.status(401).send({ error: 'Unauthorized - set ADMIN_API_KEY env var and pass as Bearer token' });
+    return false;
+  }
+  return true;
+}
+
 export async function socialRoutes(fastify: FastifyInstance) {
   /**
    * Get social media status
@@ -58,9 +71,10 @@ export async function socialRoutes(fastify: FastifyInstance) {
    * Test Bluesky post (development only)
    */
   fastify.post('/social/test/bluesky', async (request, reply) => {
+    if (!requireAdminKey(request, reply)) return;
     try {
       const { content } = request.body as { content?: string };
-      
+
       if (!content) {
         return reply.status(400).send({ error: 'Content is required' });
       }
@@ -86,6 +100,7 @@ export async function socialRoutes(fastify: FastifyInstance) {
    * Test X post (development only)
    */
   fastify.post('/social/test/x', async (request, reply) => {
+    if (!requireAdminKey(request, reply)) return;
     try {
       const { content } = request.body as { content?: string };
       
@@ -114,6 +129,7 @@ export async function socialRoutes(fastify: FastifyInstance) {
    * Manually check for interactions
    */
   fastify.post('/social/check-interactions', async (request, reply) => {
+    if (!requireAdminKey(request, reply)) return;
     try {
       const bskyInteractions = config.blueskyIdentifier 
         ? await blueskyClient.fetchInteractions()
@@ -147,6 +163,7 @@ export async function socialRoutes(fastify: FastifyInstance) {
    * If no content is provided, generates a reply using Gemini.
    */
   fastify.post('/social/reply/x', async (request, reply) => {
+    if (!requireAdminKey(request, reply)) return;
     try {
       const { tweetId, content, originalMessage } = request.body as {
         tweetId: string;
@@ -154,8 +171,8 @@ export async function socialRoutes(fastify: FastifyInstance) {
         originalMessage?: string;
       };
 
-      if (!tweetId) {
-        return reply.status(400).send({ error: 'tweetId is required' });
+      if (!tweetId || !/^\d{1,20}$/.test(tweetId)) {
+        return reply.status(400).send({ error: 'tweetId is required and must be a numeric string' });
       }
 
       if (!config.xApiKey) {
@@ -166,15 +183,22 @@ export async function socialRoutes(fastify: FastifyInstance) {
         return reply.status(429).send({ error: 'Daily X reply quota reached (1/day)' });
       }
 
-      let replyContent = content;
+      let replyContent: string | undefined;
 
-      // Generate reply with Gemini if no content provided
-      if (!replyContent && originalMessage) {
+      if (content) {
+        // Raw content provided - enforce length limit and always format
+        if (content.length > 500) {
+          return reply.status(400).send({ error: 'Content too long (max 500 chars)' });
+        }
+        const formatted = formatForX(content);
+        replyContent = formatted.text;
+      } else if (originalMessage) {
+        // Generate reply with Gemini from the original tweet text
+        const sanitized = originalMessage.slice(0, 300).replace(/"/g, "'");
         const { project } = knowledgeBase;
-        const signature = '\n\n- Charlie AI \u{1F43E}\u{1F436} #CharlieBull';
-        const maxContentChars = 300 - signature.length;
+        const maxContentChars = 269; // 300 - signature length
 
-        const prompt = `You received this message on X/Twitter: "${originalMessage}"
+        const prompt = `You received this message on X/Twitter: "${sanitized}"
 
 You are Charlie Bull, a playful puppy mascot for a cross-chain cryptocurrency project.
 
@@ -195,12 +219,6 @@ Generate ONLY the reply text:`;
 
       if (!replyContent) {
         return reply.status(400).send({ error: 'Either content or originalMessage is required' });
-      }
-
-      // Format if raw content was provided
-      if (content && !content.includes('Charlie AI')) {
-        const formatted = formatForX(content);
-        replyContent = formatted.text;
       }
 
       const result = await xClient.replyToPost(tweetId, replyContent);
