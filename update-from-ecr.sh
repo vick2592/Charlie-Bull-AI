@@ -51,7 +51,7 @@ curl -f http://localhost/healthz || echo "❌ Health check failed"
 
 echo ""
 echo "📊 Social media status..."
-curl -s http://localhost/social/status | jq '.' || echo "Response received"
+curl -s http://localhost/api/social/status | jq '.' || echo "Response received"
 
 echo ""
 echo "✅ Deployment complete!"

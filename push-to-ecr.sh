@@ -21,7 +21,10 @@ fi
 echo "🔐 Authenticating with AWS ECR..."
 aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
 
-echo "🏷️  Tagging image..."
+echo "�️  Building image for linux/amd64 (EC2 target)..."
+docker build --platform linux/amd64 -t charlie-ai-server:latest .
+
+echo "�🏷️  Tagging image..."
 docker tag charlie-ai-server:latest $ECR_REGISTRY/$ECR_REPO:$VERSION
 docker tag charlie-ai-server:latest $ECR_REGISTRY/$ECR_REPO:latest
 
