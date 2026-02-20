@@ -158,8 +158,9 @@ export async function socialRoutes(fastify: FastifyInstance) {
 
   /**
    * Manual reply to a tweet (works on free tier)
-   * Since free tier can't read mentions via userMentionTimeline,
-   * this lets you reply to specific tweets by providing the tweetId.
+   * LEGACY: Kept as template for when project upgrades to Basic tier ($100/mo).
+   * Currently X is used for scheduled posts only. When Basic tier is purchased,
+   * this endpoint enables manual replies by providing a tweetId.
    * If no content is provided, generates a reply using Gemini.
    */
   fastify.post('/social/reply/x', async (request, reply) => {
@@ -238,6 +239,7 @@ Generate ONLY the reply text:`;
 
   /**
    * Get X API tier status
+   * LEGACY: Informational endpoint for when project upgrades to Basic tier ($100/mo).
    */
   fastify.get('/social/x/tier', async (request, reply) => {
     try {
