@@ -19,6 +19,33 @@ export class BlueskyClient {
   }
 
   /**
+   * Classify an API error and reset auth state if it's an auth/token error.
+   * AT Protocol token expiry comes back as XRPCError with error='ExpiredToken'.
+   * Network/server errors (5xx) do NOT clear auth — those are transient.
+   */
+  private handleApiError(error: any, context: string): void {
+    const status = error?.status ?? error?.response?.status ?? null;
+    const errorCode: string = (error?.error ?? error?.message ?? '').toLowerCase();
+    const isAuthError =
+      status === 401 ||
+      status === 403 ||
+      errorCode.includes('expiredtoken') ||
+      errorCode.includes('invalid token') ||
+      errorCode.includes('authentication required') ||
+      errorCode.includes('not logged in');
+
+    if (isAuthError) {
+      this.authenticated = false;
+      logger.warn(
+        { context, status, errorCode },
+        'Bluesky auth/token error detected — will re-authenticate on next attempt'
+      );
+    } else {
+      logger.error({ error, context, status }, `Bluesky API error in ${context}`);
+    }
+  }
+
+  /**
    * Authenticate with Bluesky
    */
   async authenticate(): Promise<boolean> {
@@ -93,8 +120,8 @@ export class BlueskyClient {
         content,
         timestamp: new Date()
       };
-    } catch (error) {
-      logger.error({ error }, 'Failed to post to Bluesky');
+    } catch (error: any) {
+      this.handleApiError(error, 'createPost');
       return null;
     }
   }
@@ -102,6 +129,7 @@ export class BlueskyClient {
   /**
    * Reply to a post on Bluesky
    */
+
   async replyToPost(
     postUri: string,
     postCid: string,
@@ -155,8 +183,8 @@ export class BlueskyClient {
         timestamp: new Date(),
         sent: true
       };
-    } catch (error) {
-      logger.error({ error }, 'Failed to reply on Bluesky');
+    } catch (error: any) {
+      this.handleApiError(error, 'replyToPost');
       return null;
     }
   }
@@ -164,6 +192,7 @@ export class BlueskyClient {
   /**
    * Fetch mentions and interactions
    */
+
   async fetchInteractions(): Promise<SocialInteraction[]> {
     await this.ensureAuthenticated();
 
@@ -204,8 +233,8 @@ export class BlueskyClient {
 
       logger.info(`Fetched ${interactions.length} unread interactions from Bluesky`);
       return interactions;
-    } catch (error) {
-      logger.error({ error }, 'Failed to fetch Bluesky interactions');
+    } catch (error: any) {
+      this.handleApiError(error, 'fetchInteractions');
       return [];
     }
   }

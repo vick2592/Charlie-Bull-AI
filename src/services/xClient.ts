@@ -68,6 +68,29 @@ export class XClient {
   }
 
   /**
+   * Classify an X API error and reset auth state for auth failures.
+   * Leaves rate-limit (429) errors without clearing auth — those are transient.
+   */
+  private handleApiError(error: any, context: string): void {
+    const status = error?.code ?? error?.data?.status ?? error?.status ?? null;
+    const isAuthError = status === 401 || status === 403;
+    const isRateLimit = status === 429;
+
+    if (isAuthError) {
+      this.authenticated = false;
+      this.client = null;
+      logger.warn(
+        { context, status },
+        'X/Twitter auth error detected — will re-authenticate on next attempt'
+      );
+    } else if (isRateLimit) {
+      logger.warn({ context }, 'X/Twitter rate limit hit — post skipped, will retry next scheduled slot');
+    } else {
+      logger.error({ error, context, status }, `X/Twitter API error in ${context}`);
+    }
+  }
+
+  /**
    * Create a tweet on X/Twitter
    */
   async createPost(content: string): Promise<SocialPost | null> {
@@ -84,8 +107,8 @@ export class XClient {
         content,
         timestamp: new Date()
       };
-    } catch (error) {
-      logger.error({ error }, 'Failed to post to X/Twitter');
+    } catch (error: any) {
+      this.handleApiError(error, 'createPost');
       return null;
     }
   }
@@ -113,8 +136,8 @@ export class XClient {
         timestamp: new Date(),
         sent: true
       };
-    } catch (error) {
-      logger.error({ error }, 'Failed to reply on X/Twitter');
+    } catch (error: any) {
+      this.handleApiError(error, 'replyToPost');
       return null;
     }
   }

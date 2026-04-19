@@ -31,7 +31,7 @@ async function ensureModelList() {
   }
 }
 
-export async function generateWithGemini(messages: ChatMessage[]): Promise<{ text: string; modelUsed?: string }> {
+export async function generateWithGemini(messages: ChatMessage[]): Promise<{ text: string; modelUsed?: string; isError?: boolean }> {
   const userMessages = messages.filter(m => m.role === 'user');
   const lastUser = userMessages.slice(-1)[0];
   if (!config.geminiApiKey) {
@@ -110,5 +110,11 @@ export async function generateWithGemini(messages: ChatMessage[]): Promise<{ tex
     logger.error({ tried: modelsToTry }, 'gemini_all_models_failed_no_detail');
   }
   const reasonSnippet = lastFailure?.status ? ` (last HTTP ${lastFailure.status})` : '';
-  return { text: ensureDogEmoji(`I hit a temporary snag fetching data${reasonSnippet}. Try again shortly.`) };
+  // isError=true tells callers (e.g. the social media scheduler) that this is a failure
+  // message, NOT real generated content. The scheduler will skip posting when isError is true.
+  // Chat and Telegram callers ignore isError and show the message to the user, which is fine.
+  return {
+    text: ensureDogEmoji(`I hit a temporary snag fetching data${reasonSnippet}. Try again shortly.`),
+    isError: true
+  };
 }

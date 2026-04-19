@@ -2,8 +2,8 @@
 
 **Purpose of this file:** This document exists so that any AI assistant (Claude, Gemini, GPT, or future models) can be dropped into this codebase cold and immediately understand the full project, architecture, current state, and what to do next. Read this file first before touching anything.
 
-**Last updated:** March 29, 2026  
-**Server version:** 0.1.0  
+**Last updated:** April 19, 2026  
+**Server version:** 0.1.1  
 **Related repo:** official-charlie-bull (frontend — has its own PROJECT_CONTEXT.md)
 
 ---
@@ -201,6 +201,7 @@ Copy `deploy.env.example` to `deploy.env` and fill in secrets. **Never commit `d
 | `X_BEARER_TOKEN` | `""` | Twitter bearer token (read-only operations) |
 | `SOCIAL_POSTS_ENABLED` | `false` | Enable automated Bluesky + X scheduled posts |
 | `SOCIAL_REPLIES_ENABLED` | `false` | Enable automated Bluesky reply-to-mentions |
+| `SOCIAL_DEV_MODE` | `false` | Verbose logging on post/reply failures. Error messages are **never** posted to social regardless of this value. Keep `false` in production. |
 | `ADMIN_API_KEY` | `""` | Secures write social endpoints. Generate with `openssl rand -hex 32` |
 
 ---
@@ -314,6 +315,7 @@ This is the **single source of truth** for all project data. It is the first fil
 - Model normalization: maps legacy names (e.g. `gemini-1.5-pro`) to current `-latest` suffixed GA names
 - Falls back to mock response if `GEMINI_API_KEY` is not set (safe for dev)
 - Always applies `ensureDogEmoji()` to output
+- Returns `{ text, isError: true }` on all failure paths (rate limit, network, auth) — callers must check `isError` before using the text. The scheduler uses this to skip posting rather than publish an error string.
 
 ### `memoryStore.ts` — Session Memory
 - In-memory `Map<sessionId, messages[]>` — **does not persist across server restarts**
@@ -343,11 +345,14 @@ This is the **single source of truth** for all project data. It is the first fil
 - Authenticates with App Password (not main account password)
 - Detects facets (links, mentions) via `RichText.detectFacets()` before posting
 - Auto-replies poll for new mentions/replies every 30 minutes via the scheduler
+- `handleApiError()` resets `authenticated = false` on `ExpiredToken` / 401 / 403 so the next call automatically re-authenticates (previously stayed `true` forever after token expiry)
 
 ### `xClient.ts` — X/Twitter Integration
 - Uses `twitter-api-v2` with OAuth 1.0a (User Auth)
 - Currently only posts (Free tier) — auto-replies require Basic tier upgrade
 - Do NOT implement auto-replies until the X API tier is upgraded and documented
+- `handleApiError()` resets `authenticated = false` and `client = null` on 401/403 for automatic re-auth; handles 429 (rate limit) separately without clearing auth
+- Character limit is **280 weighted chars** (not 300) — budget enforced in both `responseFormatter.ts` and `socialMediaScheduler.ts`
 
 ---
 
@@ -462,6 +467,9 @@ Auto-replies on X require the **X API Basic tier**. Do not implement, document a
 
 ### Gemini Model Deprecation
 Gemini model names deprecate over time and return 404s. Always use `-latest` suffixed names (e.g. `gemini-1.5-pro-latest`). The model list in `GEMINI_MODELS` should be updated when Google deprecates a model. Watch for `gemini_configured_models_missing_from_list` warnings in logs.
+
+### Social Post Failure & Retry Behaviour
+When Gemini fails (rate limit, network error, etc.) `generateWithGemini` returns `isError: true`. The scheduler detects this and **never posts the error string to social media**. Instead it retries up to 3 times with a 30-minute delay between attempts. If all 3 fail, the post slot is skipped and the scheduler waits for the next scheduled time. If you see 3 or more consecutive missing posts, check `docker logs charlie-ai` for the root cause.
 
 ### Telegram Polling on EC2
 Only one polling process should run at a time. If `TELEGRAM_POLLING=true` and more than one container is running, Telegram updates will be split between instances. Use a single container deployment.

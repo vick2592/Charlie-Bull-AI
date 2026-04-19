@@ -36,6 +36,8 @@ const ConfigSchema = z.object({
   // Social Media Features
   ,SOCIAL_POSTS_ENABLED: z.string().optional().default('false')
   ,SOCIAL_REPLIES_ENABLED: z.string().optional().default('false')
+  // Dev mode: logs error details verbosely but never posts error messages to social media
+  ,SOCIAL_DEV_MODE: z.string().optional().default('false')
   // Admin API Key for write endpoints
   ,ADMIN_API_KEY: z.string().optional().default('')
 });
@@ -76,6 +78,7 @@ export const config = {
   // Social Media Features
   ,socialPostsEnabled: raw.SOCIAL_POSTS_ENABLED.toLowerCase() === 'true'
   ,socialRepliesEnabled: raw.SOCIAL_REPLIES_ENABLED.toLowerCase() === 'true'
+  ,socialDevMode: raw.SOCIAL_DEV_MODE.toLowerCase() === 'true'
   // Admin API Key
   ,adminApiKey: raw.ADMIN_API_KEY
 };

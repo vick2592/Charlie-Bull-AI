@@ -212,12 +212,23 @@ export class SocialMediaScheduler {
   }
 
   /**
+   * Delay between post-failure retries (30 minutes).
+   * 3 total attempts per scheduled slot before giving up until next slot.
+   */
+  private readonly POST_RETRY_DELAY_MS = 30 * 60 * 1000; // 30 minutes
+  private readonly POST_MAX_RETRIES = 3;
+
+  /**
    * Create a scheduled post
    * Bluesky: Posts 2x/day (morning + afternoon/evening) - 11,666/day limit
    * X FREE tier: Posts 2x/day (morning + afternoon/evening) - no replies means more budget for posts
    * Both platforms post on the same schedule for consistency
+   *
+   * On Gemini failure: retries up to POST_MAX_RETRIES times with POST_RETRY_DELAY_MS between each.
+   * After all retries exhausted, skips slot and waits for next scheduled time.
+   * Error messages from Gemini are NEVER posted to social media.
    */
-  private async createScheduledPost(timeOfDay: 'morning' | 'afternoon' | 'evening'): Promise<void> {
+  private async createScheduledPost(timeOfDay: 'morning' | 'afternoon' | 'evening', retryAttempt: number = 0): Promise<void> {
     try {
       // Determine which platforms should post using platform-specific quotas
       const shouldPostBluesky = config.blueskyIdentifier && socialMediaQueue.canPostOnPlatform('bluesky');
@@ -238,31 +249,83 @@ export class SocialMediaScheduler {
       // Generate content using Gemini (only if at least one platform will post)
       const content = await this.generatePostContent(timeOfDay);
       if (!content) {
-        logger.warn('Failed to generate post content');
+        // Content generation failed (Gemini error / rate limit).
+        // Retry up to POST_MAX_RETRIES times with a 30-minute delay between each attempt.
+        // Error messages from Gemini are NEVER posted — the generatePostContent guard handles that.
+        if (retryAttempt < this.POST_MAX_RETRIES - 1) {
+          const nextAttempt = retryAttempt + 1;
+          const delayMinutes = this.POST_RETRY_DELAY_MS / 60_000;
+          logger.warn(
+            { timeOfDay, retryAttempt: nextAttempt, maxRetries: this.POST_MAX_RETRIES, delayMinutes },
+            `Post generation failed — scheduling retry ${nextAttempt}/${this.POST_MAX_RETRIES} in ${delayMinutes} minutes`
+          );
+          if (config.socialDevMode) {
+            logger.info({ timeOfDay, nextAttempt }, '[DEV MODE] Retry timer started for failed post slot');
+          }
+          setTimeout(() => {
+            this.createScheduledPost(timeOfDay, nextAttempt).catch(err =>
+              logger.error({ err, timeOfDay, nextAttempt }, 'Scheduled post retry threw unexpectedly')
+            );
+          }, this.POST_RETRY_DELAY_MS);
+        } else {
+          // All retries exhausted — skip this slot entirely.
+          logger.error(
+            { timeOfDay, attemptsUsed: this.POST_MAX_RETRIES },
+            `All ${this.POST_MAX_RETRIES} post attempts failed for ${timeOfDay} slot — skipping. Will try again at next scheduled time (morning/afternoon/evening).`
+          );
+        }
         return;
       }
 
       // Post to Bluesky (if within daily limit: 2/day)
       if (shouldPostBluesky) {
         const formattedContent = formatForBluesky(content);
-        const post = await blueskyClient.createPost(formattedContent.text);
-        if (post) {
-          socialMediaQueue.incrementPostCount('bluesky');
-          logger.info({ timeOfDay, platform: 'bluesky' }, 'Posted scheduled content to Bluesky');
+
+        // Guard: Bluesky hard limit is 300 graphemes. Skip if somehow still over limit.
+        if (formattedContent.characterCount > 300) {
+          logger.error(
+            { characterCount: formattedContent.characterCount, limit: 300, platform: 'bluesky' },
+            'Post exceeds Bluesky character limit — skipping to avoid HTTP error. Check content generation.'
+          );
+        } else {
+          const post = await blueskyClient.createPost(formattedContent.text);
+          if (post) {
+            socialMediaQueue.incrementPostCount('bluesky');
+            logger.info({ timeOfDay, platform: 'bluesky' }, 'Posted scheduled content to Bluesky');
+          } else {
+            logger.warn(
+              { timeOfDay, platform: 'bluesky' },
+              'Bluesky post returned null — HTTP error or auth failure. Post skipped. Check client logs above.'
+            );
+          }
         }
       }
 
       // Post to X (2/day, same schedule as Bluesky)
       if (shouldPostX) {
         const formattedContent = formatForX(content);
-        const post = await xClient.createPost(formattedContent.text);
-        if (post) {
-          socialMediaQueue.incrementPostCount('x');
-          logger.info({ timeOfDay, platform: 'x' }, 'Posted scheduled content to X');
+
+        // Guard: X hard limit is 280 weighted chars. Skip if over limit to avoid HTTP 400.
+        if (formattedContent.characterCount > 280) {
+          logger.error(
+            { characterCount: formattedContent.characterCount, limit: 280, platform: 'x' },
+            'Post exceeds X character limit — skipping to avoid HTTP error. Check content generation.'
+          );
+        } else {
+          const post = await xClient.createPost(formattedContent.text);
+          if (post) {
+            socialMediaQueue.incrementPostCount('x');
+            logger.info({ timeOfDay, platform: 'x' }, 'Posted scheduled content to X');
+          } else {
+            logger.warn(
+              { timeOfDay, platform: 'x' },
+              'X post returned null — HTTP error or auth failure. Post skipped. Check client logs above.'
+            );
+          }
         }
       }
 
-      logger.info({ timeOfDay, content }, 'Completed scheduled post');
+      logger.info({ timeOfDay }, 'Completed scheduled post cycle');
     } catch (error) {
       logger.error({ error }, 'Error creating scheduled post');
     }
@@ -503,8 +566,12 @@ Output ONLY the post text (${maxChars} chars max). No quotes. No labels. No prea
    */
   private async generatePostContent(timeOfDay: string, retryCount: number = 0): Promise<string | null> {
     try {
-      const signature = '\n\n- Charlie AI 🐾🐶 #CharlieBull'; // 31 chars
-      const maxContentChars = 300 - signature.length; // 269 chars for content
+      const signature = '\n\n- Charlie AI 🐾🐶 #CharlieBull';
+      // Content is posted to both Bluesky (300 graphemes) AND X (280 weighted chars).
+      // X is more restrictive — use X's limit so the same content fits both platforms.
+      // JS .length === Twitter weighted length for our characters, so budget directly.
+      const X_CHAR_LIMIT = 280;
+      const maxContentChars = X_CHAR_LIMIT - signature.length; // ~248 chars for content
 
       // Select topic and post type (avoiding recent repeats)
       const topic = this.selectTopic();
@@ -521,6 +588,17 @@ Output ONLY the post text (${maxChars} chars max). No quotes. No labels. No prea
       const response = await generateWithGemini([
         { role: 'user', content: prompt }
       ]);
+
+      // CRITICAL: If Gemini failed (rate limit, auth, network), it returns an error message string
+      // with isError=true. We must NEVER post that error message to social media.
+      // Return null here so the scheduler skips the post slot entirely.
+      if (response.isError) {
+        logger.warn(
+          { timeOfDay, topic, postType, retryCount, errorText: response.text },
+          'Gemini returned an error response — skipping post to avoid publishing error message to social media'
+        );
+        return null;
+      }
 
       const responseText = (response.text || '').trim();
 
@@ -665,7 +743,16 @@ Generate ONLY the reply text (no signatures, no emojis):`;
       const response = await generateWithGemini([
         { role: 'user', content: prompt }
       ]);
-      
+
+      // CRITICAL: Never reply with Gemini error messages on social media.
+      if (response.isError) {
+        logger.warn(
+          { platform, retryCount },
+          'Gemini returned an error response — skipping reply to avoid publishing error message'
+        );
+        return null;
+      }
+
       const responseText = (response.text || '').trim();
       
       // Check if response is too long BEFORE formatting

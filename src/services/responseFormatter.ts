@@ -44,8 +44,19 @@ function smartTruncate(text: string, maxLength: number): string {
 }
 
 /**
+ * Calculate Twitter weighted character length.
+ * Twitter counts most characters as 1, but emoji (code points > U+FFFF) count as 2.
+ * URLs always count as 23 (but we replace them before this point).
+ * JS String.length already equals the Twitter weighted length for emoji because
+ * both use UTF-16 surrogate pairs — so we can use .length directly.
+ */
+function twitterWeightedLength(text: string): number {
+  return text.length; // JS .length === Twitter weighted length for our use-case (no raw URLs)
+}
+
+/**
  * Format response for X/Twitter (minimal links, conversational)
- * Using 300 char limit to match Bluesky (more room than Twitter's 280)
+ * X hard limit: 280 weighted characters (emoji count as 2 via surrogate pairs).
  */
 export function formatForX(content: string, includeLinks: boolean = false): FormattedResponse {
   let text = content;
@@ -62,17 +73,19 @@ export function formatForX(content: string, includeLinks: boolean = false): Form
     return 'our website'; // Generic fallback
   });
 
-  // Add AI signature with paw and dog emojis (Charlie is a puppy, not a cow!)
+  // X hard limit is 280 weighted chars. Signature has 2 emoji (surrogate pairs = 2 JS chars each).
+  // JS .length == Twitter weighted length, so we can budget directly.
   const signature = '\n\n- Charlie AI 🐾🐶 #CharlieBull';
-  const maxContentLength = 300 - signature.length; // 269 chars for content
-  
-  // Smart truncation to fit within 300 chars with signature
+  const X_CHAR_LIMIT = 280;
+  const maxContentLength = X_CHAR_LIMIT - twitterWeightedLength(signature); // ~248 chars for content
+
+  // Smart truncation to fit within 280 weighted chars
   text = smartTruncate(text, maxContentLength) + signature;
 
   return {
     text,
     includesLinks: false, // X posts shouldn't have clickable links
-    characterCount: text.length,
+    characterCount: twitterWeightedLength(text),
   };
 }
 
