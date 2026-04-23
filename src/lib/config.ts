@@ -10,9 +10,10 @@ const ConfigSchema = z.object({
   SESSION_RATE_LIMIT: z.string().optional().default('8'),
   WINDOW_SECONDS: z.string().optional().default('60'),
   MAX_TOKENS: z.string().optional().default('1024'),
-  // Use currently published GA model names with -latest suffixes to avoid versioned deprecation 404s.
-  GEMINI_MODEL: z.string().optional().default('gemini-1.5-pro-latest'),
-  GEMINI_MODELS: z.string().optional().default('gemini-1.5-pro-latest,gemini-1.5-flash-latest,gemini-1.5-flash-8b-latest'),
+  // Use gemini-2.5-pro as primary (stable until June 2026), with 2.5-flash fallbacks.
+  // gemini-1.5-* are deprecated — do NOT use them.
+  GEMINI_MODEL: z.string().optional().default('gemini-2.5-pro'),
+  GEMINI_MODELS: z.string().optional().default('gemini-2.5-pro,gemini-2.5-flash,gemini-2.5-flash-lite'),
   CHARLIE_NAME: z.string().optional().default('Charlie'),
   CHARLIE_CREATOR: z.string().optional().default('Charlie Bull'),
   CHARLIE_PERSONA_EXTRA: z.string().optional().default('')

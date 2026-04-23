@@ -2,11 +2,10 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { memoryStore } from '../services/memoryStore.js';
 import { safetyCheck, safetyRefusal } from '../services/safety.js';
-import { buildPrompt } from '../services/persona.js';
+import { buildPromptWithMarket, ensureDogEmoji } from '../services/persona.js';
 import { generateWithGemini } from '../services/geminiClient.js';
 import { SlidingWindowRateLimiter } from '../services/rateLimiter.js';
 import { config } from '../lib/config.js';
-import { ensureDogEmoji } from '../services/persona.js';
 
 const bodySchema = z.object({
   sessionId: z.string().min(1).max(128),
@@ -49,7 +48,7 @@ export function registerChatRoute(app: FastifyInstance) {
     // Merge prior server memory with provided frontend history (trust server memory first)
     const mergedHistory = [...prior, ...history];
 
-    const { messages: promptMessages } = buildPrompt(mergedHistory, message);
+    const { messages: promptMessages } = await buildPromptWithMarket(mergedHistory, message);
 
   const gen = await generateWithGemini(promptMessages);
   const assistantMessage = ensureDogEmoji(gen.text.trim());

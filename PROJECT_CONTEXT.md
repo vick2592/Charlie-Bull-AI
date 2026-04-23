@@ -2,8 +2,8 @@
 
 **Purpose of this file:** This document exists so that any AI assistant (Claude, Gemini, GPT, or future models) can be dropped into this codebase cold and immediately understand the full project, architecture, current state, and what to do next. Read this file first before touching anything.
 
-**Last updated:** April 19, 2026  
-**Server version:** 0.1.1  
+**Last updated:** April 23, 2026  
+**Server version:** 0.1.2  
 **Related repo:** official-charlie-bull (frontend — has its own PROJECT_CONTEXT.md)
 
 ---
@@ -54,9 +54,10 @@ charlie-ai-server/
 │   │   ├── chat.ts                # POST /v1/chat — main AI chat endpoint
 │   │   └── social.ts              # GET|POST /api/social/* — status, test posts, interactions
 │   ├── services/
-│   │   ├── persona.ts             # SYSTEM_PERSONA prompt builder, buildPrompt(), ensureDogEmoji()
+│   │   ├── persona.ts             # SYSTEM_PERSONA prompt builder, buildPrompt(), buildPromptWithMarket() (async, injects live prices), ensureDogEmoji()
 │   │   ├── knowledgeBase.ts       # Single source of truth for all project data
 │   │   ├── geminiClient.ts        # Google Gemini AI client (SDK + REST fallback, model chain)
+│   │   ├── priceService.ts        # Live market data — DexScreener ($CHAR on-chain) + CoinGecko (9-chain native tokens + BTC). 5-min cache, never throws.
 │   │   ├── memoryStore.ts         # In-memory session conversation history (pruned to ~10 turns)
 │   │   ├── rateLimiter.ts         # Sliding window rate limiter (per-session + global)
 │   │   ├── safety.ts              # Input safety filter (banned patterns)
@@ -145,7 +146,7 @@ Main AI conversation endpoint. Called by the Next.js frontend proxy (`/api/chat`
 }
 ```
 
-**Flow:** Rate check → safety filter → merge server memory + frontend history → build Gemini prompt → generate → ensure dog emoji → persist to memory → return.
+**Flow:** Rate check → safety filter → merge server memory + frontend history → `buildPromptWithMarket()` (fetches live $CHAR + chain token prices, injects into system prompt) → generate → ensure dog emoji → persist to memory → return.
 
 ### Health
 ```
@@ -174,8 +175,8 @@ Copy `deploy.env.example` to `deploy.env` and fill in secrets. **Never commit `d
 | `PORT` | `8080` | Server port |
 | `GEMINI_API_KEY` | — | **Required** for real AI responses (Google AI Studio) |
 | `GEMINI_API_VERSION` | `v1` | API version (`v1` = GA) |
-| `GEMINI_MODEL` | `gemini-1.5-pro-latest` | Primary model |
-| `GEMINI_MODELS` | `gemini-1.5-pro-latest,gemini-1.5-flash-latest,gemini-1.5-flash-8b-latest` | Model fallback chain (comma-separated) |
+| `GEMINI_MODEL` | `gemini-2.5-pro` | Primary model (GA, stable until June 2026+) |
+| `GEMINI_MODELS` | `gemini-2.5-pro,gemini-2.5-flash,gemini-2.5-flash-lite` | Model fallback chain (comma-separated). `gemini-1.5-*` are deprecated — do not use. |
 | `ALLOWED_ORIGINS` | `http://localhost:3000` | CORS origins (comma-separated) |
 | `GLOBAL_RATE_LIMIT` | `100` | Max requests per window (all sessions) |
 | `SESSION_RATE_LIMIT` | `8` | Max requests per window per sessionId |
@@ -290,7 +291,7 @@ This is the **single source of truth** for all project data. It is the first fil
 | Linea | Linea DEX |
 | Blast | Blast DEX |
 
-**Bridge Technology:** Axelar Network, Squid Router, LayerZero
+**Bridge Technology:** Axelar Network, Squid Router, Base ↔ Solana Bridge
 
 ### $BULL Token
 | Property | Value |
@@ -312,10 +313,18 @@ This is the **single source of truth** for all project data. It is the first fil
 ### `geminiClient.ts` — AI Generation
 - Uses `@google/generative-ai` SDK with REST fallback
 - Tries models in the `GEMINI_MODELS` chain order until one succeeds
-- Model normalization: maps legacy names (e.g. `gemini-1.5-pro`) to current `-latest` suffixed GA names
+- Model normalization: maps any deprecated `gemini-1.5-*` / `gemini-2.0-flash` names to the current `gemini-2.5-*` equivalents so old env values degrade gracefully
 - Falls back to mock response if `GEMINI_API_KEY` is not set (safe for dev)
 - Always applies `ensureDogEmoji()` to output
 - Returns `{ text, isError: true }` on all failure paths (rate limit, network, auth) — callers must check `isError` before using the text. The scheduler uses this to skip posting rather than publish an error string.
+
+### `priceService.ts` — Live Market Data
+- **DexScreener:** Fetches $CHAR on-chain price for every DEX pair by contract address. Takes the highest-liquidity pair per chain. Returns `[]` pre-TGE (no pairs = no post about price yet).
+- **CoinGecko (free tier, no key):** Fetches native/governance token prices for all 9 chains Charlie is deployed on, plus BTC as a market-wide indicator. Tracked tokens: BTC, ETH (Ethereum/Base/Linea/Blast), BNB (BSC), AVAX, ARB, MNT (Mantle), POL (Polygon), BLAST, SOL (roadmap bridge).
+- **5-minute cache:** Both data sources are cached together. A single `getMarketSnapshot()` call returns cached data if < 5 min old.
+- **Graceful failure:** Never throws. All fetch errors are caught and logged; the caller receives empty arrays and continues normally.
+- **8-second timeout** on all outbound fetches via `AbortSignal.timeout(8000)`.
+- **Key exports:** `getMarketSnapshot()`, `formatMarketContext(snapshot)` (for prompt injection), `formatCharPriceResponse(snapshot)` (for user-facing responses).
 
 ### `memoryStore.ts` — Session Memory
 - In-memory `Map<sessionId, messages[]>` — **does not persist across server restarts**
@@ -362,9 +371,9 @@ This is the **single source of truth** for all project data. It is the first fil
 Frontend (Next.js)
   └── POST /api/chat (proxy)
         └── POST /v1/chat (this server)
-              ├── memoryStore.prune(sessionId)   → server-side history
-              ├── merge with req.body.history     → frontend-supplied last 10 msgs
-              ├── buildPrompt(merged, userMessage)→ [system, ...history, user]
+              ├── memoryStore.prune(sessionId)         → server-side history
+              ├── merge with req.body.history           → frontend-supplied last 10 msgs
+              ├── buildPromptWithMarket(merged, userMsg)→ getMarketSnapshot() → inject into system prompt
               ├── generateWithGemini(messages)
               ├── ensureDogEmoji(response)
               └── memoryStore.append(sessionId, [user, assistant])
@@ -416,13 +425,14 @@ Final image is lean — no TypeScript toolchain, no dev dependencies.
 | Quarter | Milestone | Status |
 |---------|-----------|--------|
 | Q4 2025 | Charlie AI launched — Telegram, Bluesky, X/Twitter, website chat. Bluesky auto-replies active. | ✅ Complete |
-| Q1 2026 | AI growth & analysis. Server infrastructure upgrades. 14-topic/7-structure post system deployed. X Free tier stabilization. | 🔄 Current |
-| Q2 2026 | Submit token update forms on CoinGecko and Etherscan prior to $CHAR TGE | ⏳ Upcoming |
-| Q2–Q3 2026 | $CHAR TGE on Base via Aerodrome. Cross-chain expansion to all 9 chains via Axelar + Squid Router. | ⏳ Upcoming |
-| Q3 2026 | $BULL launch on Pump.fun (Solana). Upon graduation: 1B $CHAR permanently burned. CHAR/BULL pair on Raydium. | ⏳ Upcoming |
-| Q4 2026 | Charlie's Angels NFT collection on Solana. IP partnerships, merchandise, multimedia. | ⏳ Upcoming |
-| Q1 2027 | Base ↔ Solana bridge. Weekly Pump.fun podcasts. | ⏳ Upcoming |
-| Q2 2027+ | DeFi utilities, governance, strategic partnerships, Web3 expansion. | ⏳ Future |
+| Q1 2026 | AI growth & analysis. Server upgrades. 14-topic/7-structure post system. Gemini 2.5 migration. Live market data (DexScreener + CoinGecko) injected into all AI prompts. X Free tier stabilization. | ✅ Complete |
+| Q2 2026 | Submit token listing forms on CoinGecko and Etherscan prior to $CHAR TGE. | 🔄 Current |
+| Q3 2026 | $CHAR TGE on Base via Aerodrome. Cross-chain expansion to all 9 chains via Axelar Network + Squid Router + Base↔Solana Bridge. | ⏳ Upcoming |
+| Q3–Q4 2026 | $BULL launch on Pump.fun (Solana). Upon graduation: 1B $CHAR permanently burned (from Ethereum liquidity — hardcoded, not manual). CHAR/BULL swap pair on Raydium. Weekly Pump.fun podcasts begin. | ⏳ Upcoming |
+| Q4 2026 | $BULL companion token launch. Charlie's Angels NFT collection on Solana for $BULL graduates. | ⏳ Upcoming |
+| Q1 2027 | Base ↔ Solana bridge live. Raydium CHAR/BULL pair active. | ⏳ Upcoming |
+| Q2 2027 | Charlie's Angels NFT launch on Solana. IP partnerships, merchandise, multimedia. | ⏳ Upcoming |
+| Q3 2027+ | DeFi utilities, governance, strategic partnerships, Web3 ecosystem expansion. | ⏳ Future |
 
 ---
 
@@ -466,7 +476,7 @@ Auto-replies on X require the **X API Basic tier**. Do not implement, document a
 `InMemoryStore` clears on every server restart. If persistent memory across restarts becomes a requirement, replace with Redis or a database. For current scale this is acceptable.
 
 ### Gemini Model Deprecation
-Gemini model names deprecate over time and return 404s. Always use `-latest` suffixed names (e.g. `gemini-1.5-pro-latest`). The model list in `GEMINI_MODELS` should be updated when Google deprecates a model. Watch for `gemini_configured_models_missing_from_list` warnings in logs.
+Gemini model names deprecate over time and return 404s. The current chain is `gemini-2.5-pro,gemini-2.5-flash,gemini-2.5-flash-lite` (stable GA, not deprecated as of April 2026). `gemini-1.5-*` are fully deprecated — do not use. The normalizer in `geminiClient.ts` maps any legacy names to their 2.5 equivalents as a safety net. Watch for `gemini_configured_models_missing_from_list` warnings in logs and update `GEMINI_MODELS` in `deploy.env` when a new deprecation is announced.
 
 ### Social Post Failure & Retry Behaviour
 When Gemini fails (rate limit, network error, etc.) `generateWithGemini` returns `isError: true`. The scheduler detects this and **never posts the error string to social media**. Instead it retries up to 3 times with a 30-minute delay between attempts. If all 3 fail, the post slot is skipped and the scheduler waits for the next scheduled time. If you see 3 or more consecutive missing posts, check `docker logs charlie-ai` for the root cause.

@@ -83,10 +83,11 @@ export const knowledgeBase: KnowledgeBase = {
       'Same contract address (0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1) across all chains',
       'Launch liquidity pool on Base via Aerodrome',
       'Multi-DEX support: Uniswap, PancakeSwap, QuickSwap, LFGJ, Fusion X, and more',
-      'AI-powered educational assistant (Charlie) on Telegram, Bluesky, and X',
+      'AI-powered educational assistant (Charlie) on Telegram, Bluesky, X, and website',
       'Community-first tokenomics: 35% for airdrops and rewards',
-      'Seamless bridging via Axelar Network and LayerZero',
-      'Educational $BULL token (1B supply) on Pump.fun',
+      'Seamless cross-chain bridging via Axelar Network and Squid Router',
+      'Base ↔ Solana bridge unlocks CHAR/BULL swap pair on Raydium',
+      'Educational $BULL token (1B supply) on Pump.fun — graduation burns 1B $CHAR permanently',
     ],
   },
 
@@ -112,12 +113,11 @@ export const knowledgeBase: KnowledgeBase = {
       },
     },
     notes: [
-      'After launch, 1B tokens from liquidity will be purchased and locked for Pump.fun',
-      '$BULL educational token (1B supply) launching Q3 2026 on Pump.fun',
-      'Pre-graduation: $BULL used for educational streams, 1B $CHAR tokens locked',
-      'Post-graduation: LP locked, 1B $CHAR permanently burned (deflationary event), NFT access unlocked',
-      'CHAR/BULL swap pair on Raydium after Base/Solana bridge deployment',
-      'Upon $BULL graduation, holders get exclusive access to NFT collection on Solana',
+      '$BULL educational token (1B supply) launching Q4 2026 on Pump.fun (Solana)',
+      'Pre-graduation: $BULL powers educational streams + weekly podcasts on Pump.fun. 1B $CHAR tokens are locked.',
+      'Post-graduation: 1B $CHAR permanently burned from Ethereum locked liquidity (deflationary, hardcoded — not a manual team action)',
+      'Post-graduation: LP locked, CHAR/BULL swap pair launches on Raydium, $BULL holders get exclusive early access to Charlie\u2019s Angels NFT collection',
+      'CHAR/BULL swap pair requires Base ↔ Solana bridge to be live first',
     ],
   },
 
@@ -140,42 +140,63 @@ export const knowledgeBase: KnowledgeBase = {
       quarter: 'Q4 2025',
       title: 'AI Integration',
       description:
-        'Launch interactive Charlie AI character on Telegram, Bluesky, and X - operational before token generation event',
+        'Charlie AI launched across Telegram, Bluesky, and X/Twitter. Website chat live. Automated social posting with real-time Bluesky reply support.',
       completed: true,
     },
     {
       quarter: 'Q1 2026',
       title: 'AI Growth & Analysis',
       description:
-        'Focus on Charlie AI growth, post analysis, and system upgrades based on community engagement',
-      completed: false,
+        'Server infrastructure upgrades, 14-topic rotation system, 7 post-structure types, AWS EC2 production deployment. X/Twitter free tier stabilization. Social growth analysis.',
+      completed: true,
     },
     {
       quarter: 'Q2 2026',
-      title: 'Token Generation Event (TGE)',
+      title: 'CoinGecko & Etherscan Approval',
       description:
-        'Official $CHAR TGE on Base network via Aerodrome DEX, followed by cross-chain expansion to all 9 supported chains',
-      completed: false,
-    },
-    {
-      quarter: 'Q2-Q3 2026',
-      title: 'Cross-Chain Expansion',
-      description:
-        'Bridge and provide liquidity on Arbitrum, Ethereum, Avalanche, and other Axelar-supported networks',
+        'Submit token update forms on CoinGecko and Etherscan prior to $CHAR TGE. TGE proceeds once both approvals are confirmed.',
       completed: false,
     },
     {
       quarter: 'Q3 2026',
-      title: '$BULL Educational Token Launch',
+      title: '$CHAR Token Generation Event (TGE)',
       description:
-        'Launch 1B $BULL tokens on Pump.fun after $CHAR TGE. Pre-graduation: educational streams with 1B $CHAR locked. Post-graduation: 1B $CHAR burned, NFT access unlocked, CHAR/BULL swap on Raydium',
+        'Official $CHAR TGE on Base network via Aerodrome DEX — launch pool goes live. Cross-chain expansion begins via Axelar Network and Squid Router, starting with Ethereum and Arbitrum.',
+      completed: false,
+    },
+    {
+      quarter: 'Q3–Q4 2026',
+      title: 'Cross-Chain Expansion',
+      description:
+        'Bridge and provide liquidity on remaining 7 chains: Polygon (QuickSwap), BNB Chain (PancakeSwap), Mantle (Fusion X), Linea, Blast. Full 9-chain $CHAR deployment complete.',
       completed: false,
     },
     {
       quarter: 'Q4 2026',
-      title: 'NFT Collection & IP Development',
+      title: '$BULL Launch & 1B $CHAR Burn',
       description:
-        'Launch exclusive NFT collection on Solana for $BULL graduates, develop Charlie Bull IP and brand expansion',
+        'Launch 1B $BULL tokens on Pump.fun (Solana). Weekly podcasts from the Charlie Bull team. Upon graduation: 1B $CHAR permanently burned from Ethereum locked liquidity. $BULL holders get exclusive early access to Charlie\u2019s Angels NFT collection.',
+      completed: false,
+    },
+    {
+      quarter: 'Q1 2027',
+      title: 'Base ↔ Solana Bridge & Raydium Pair',
+      description:
+        'Bridge $CHAR to Solana. CHAR/BULL swap pair launches on Raydium. $CHAR and $BULL become interoperable across EVM + Solana.',
+      completed: false,
+    },
+    {
+      quarter: 'Q2 2027',
+      title: "Charlie's Angels NFT Launch & IP Development",
+      description:
+        "Charlie's Angels NFT collection launches on Solana with exclusive benefits for $BULL graduates. Expand Charlie Bull IP through partnerships, merchandise, and multimedia content.",
+      completed: false,
+    },
+    {
+      quarter: 'Q3 2027 & Beyond',
+      title: 'Ecosystem Expansion',
+      description:
+        'Continuous development of DeFi utilities, governance implementation, strategic partnerships, and expansion of the Charlie Bull universe across Web3 platforms.',
       completed: false,
     },
   ],
@@ -187,7 +208,7 @@ export const knowledgeBase: KnowledgeBase = {
 
   technology: {
     primaryChain: 'Base (Ethereum L2)',
-    crossChainProtocols: ['Axelar Network', 'Squid Router', 'LayerZero'],
+    crossChainProtocols: ['Axelar Network', 'Squid Router', 'Base ↔ Solana Bridge'],
     chainDeployments: [
       { name: 'Ethereum', dex: 'Uniswap' },
       { name: 'Avalanche', dex: 'LFGJ' },
@@ -202,6 +223,13 @@ export const knowledgeBase: KnowledgeBase = {
   },
 
   blogPosts: [
+    {
+      title: 'Charlie Bull: Q1 2026 Build Update — What We Shipped and What\'s Coming at TGE',
+      url: 'https://medium.com/@charliebullart/charlie-bull-q1-2026-build-update-what-we-shipped-and-whats-coming-at-tge-aeee0d93a19d',
+      date: '2026-04-19',
+      summary:
+        'Full transparency update: 14-topic AI posting system, AWS infrastructure, Gemini model upgrades, roadmap status, and TGE timeline. Q2 2026 = CoinGecko/Etherscan approvals. Q3 2026 = TGE on Base via Aerodrome.',
+    },
     {
       title: 'Charlie Bull ($CHAR) Tokenomics: The Blueprint for a DeFi Revolution',
       url: 'https://medium.com/@charliebullart/charlie-bull-char-tokenomics-the-blueprint-for-a-defi-revolution',

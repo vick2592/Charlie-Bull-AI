@@ -1,6 +1,7 @@
 import { ChatMessage } from '../types/chat.js';
 import { config } from '../lib/config.js';
 import { knowledgeBase, getTokenomicsInfo, getAllSocialHandles } from './knowledgeBase.js';
+import { getMarketSnapshot, formatMarketContext } from './priceService.js';
 
 const NAME = config.charlieName || 'Charlie';
 const CREATOR = config.charlieCreator || 'Charlie Bull';
@@ -130,6 +131,22 @@ export function ensureDogEmoji(message: string): string {
 export function buildPrompt(history: ChatMessage[], userInput: string): { messages: ChatMessage[] } {
   const msgs: ChatMessage[] = [
     { role: 'system', content: SYSTEM_PERSONA },
+    ...history.filter(m => m.role !== 'system'),
+    { role: 'user', content: userInput }
+  ];
+  return { messages: msgs };
+}
+
+/**
+ * Async variant that injects live market data into the system prompt.
+ * Falls back to the static SYSTEM_PERSONA if the price fetch fails.
+ */
+export async function buildPromptWithMarket(history: ChatMessage[], userInput: string): Promise<{ messages: ChatMessage[] }> {
+  const snapshot = await getMarketSnapshot();
+  const marketSection = formatMarketContext(snapshot);
+  const systemWithMarket = SYSTEM_PERSONA + '\n\n' + marketSection;
+  const msgs: ChatMessage[] = [
+    { role: 'system', content: systemWithMarket },
     ...history.filter(m => m.role !== 'system'),
     { role: 'user', content: userInput }
   ];

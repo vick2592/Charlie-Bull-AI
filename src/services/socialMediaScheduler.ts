@@ -12,6 +12,7 @@ import { xClient } from './xClient.js';
 import { generateWithGemini } from './geminiClient.js';
 import { generateContextualResponse, formatForX, formatForBluesky } from './responseFormatter.js';
 import { knowledgeBase } from './knowledgeBase.js';
+import { getMarketSnapshot, formatMarketContext } from './priceService.js';
 import { DEFAULT_SCHEDULE } from '../types/social.js';
 import type { Platform } from '../types/social.js';
 
@@ -471,7 +472,7 @@ export class SocialMediaScheduler {
   /**
    * Build a topic-specific prompt with real KB facts for Gemini
    */
-  private buildTopicPrompt(topic: PostTopic, postType: PostType, timeOfDay: string, maxChars: number): string {
+  private buildTopicPrompt(topic: PostTopic, postType: PostType, timeOfDay: string, maxChars: number, marketContext: string = ''): string {
     const { tokenomics, technology, roadmap } = knowledgeBase;
     const chains = technology.chainDeployments;
 
@@ -487,13 +488,13 @@ export class SocialMediaScheduler {
 
       tokenomics_fact: `Share a specific tokenomics fact. Total supply: ${tokenomics.totalSupply} $CHAR. Allocation: 50% (${tokenomics.allocation.liquidity.tokens}) goes to DEX liquidity across all chains, 35% (${tokenomics.allocation.community.tokens}) goes to community airdrops and rewards, 15% (${tokenomics.allocation.teamDev.tokens}) for IP and project expansion. Ticker is $CHAR. Same contract address on all 9 chains: ${tokenomics.contractAddress}.`,
 
-      roadmap_tge: `The Token Generation Event (TGE) for $CHAR is coming Q2 2026 on Base network via Aerodrome DEX. After TGE, $CHAR will expand cross-chain to all 9 blockchains. This is the first official launch of $CHAR — before TGE it's in pre-launch phase. Aerodrome is Base's leading DEX by TVL.`,
+      roadmap_tge: `The Token Generation Event (TGE) for $CHAR is coming Q3 2026 on Base network via Aerodrome DEX. CoinGecko and Etherscan listing approvals are being processed in Q2 2026. After TGE, $CHAR will expand cross-chain to all 9 blockchains. This is the first official launch of $CHAR — before TGE it's in pre-launch phase. Aerodrome is Base's leading DEX by TVL.`,
 
       roadmap_bull: `$BULL is an educational token launching Q3 2026 on Pump.fun with 1 billion supply. Before $BULL graduates on Pump.fun, 1B $CHAR tokens are locked. After $BULL graduates, the LP is locked, 1B $CHAR is permanently burned (deflationary!), NFT access is unlocked, and a CHAR/BULL swap pair launches on Raydium.`,
 
       roadmap_nft: `When $BULL graduates on Pump.fun, holders get exclusive access to an NFT collection on Solana. This bridges Charlie Bull's presence from EVM chains all the way to Solana's NFT ecosystem. The NFT collection is tied to $BULL graduation — the more the community grows $BULL, the sooner this unlocks.`,
 
-      bridge_tech: `Charlie Bull uses three cross-chain protocols: Axelar Network, LayerZero, and Squid Router. These power the ability for $CHAR to exist on 9 chains with the SAME contract address (${tokenomics.contractAddress}). Axelar is a proof-of-stake chain purpose-built for cross-chain communication. LayerZero is an omnichain interoperability protocol. Squid Router enables single-transaction cross-chain swaps.`,
+      bridge_tech: `Charlie Bull uses three cross-chain protocols: Axelar Network, Squid Router, and the Base ↔ Solana Bridge. These power the ability for $CHAR to exist across chains with the SAME contract address (${tokenomics.contractAddress}). Axelar is a proof-of-stake chain purpose-built for cross-chain communication. Squid Router enables single-transaction cross-chain swaps. The Base ↔ Solana Bridge connects EVM and Solana ecosystems.`,
 
       same_contract: `This is one of Charlie Bull's most unique features: the same contract address (${tokenomics.contractAddress}) works across all ${chains.length} chains — Ethereum, Avalanche, Arbitrum, Mantle, Base, Linea, Blast, Polygon, and BSC. You don't need a different address on each chain. This makes verification simple and scams harder.`,
 
@@ -556,7 +557,7 @@ HARD RULES:
 
 RECENT TOPICS USED (do NOT repeat these angles): ${recentTopics.join(', ') || 'none yet'}
 RECENT POST TYPES USED: ${recentTypes.join(', ') || 'none yet'}
-
+${marketContext ? `\n${marketContext}` : ''}
 Output ONLY the post text (${maxChars} chars max). No quotes. No labels. No preamble.`;
   }
 
@@ -583,7 +584,11 @@ Output ONLY the post text (${maxChars} chars max). No quotes. No labels. No prea
         ? `\n\nCRITICAL: Your previous response was TOO LONG. This MUST be ${maxContentChars} characters or fewer. Cut ruthlessly.`
         : '';
 
-      const prompt = this.buildTopicPrompt(topic, postType, timeOfDay, maxContentChars) + retryInstruction;
+      // Fetch live market data to inject into the post prompt
+      const marketSnapshot = await getMarketSnapshot();
+      const marketContext = formatMarketContext(marketSnapshot);
+
+      const prompt = this.buildTopicPrompt(topic, postType, timeOfDay, maxContentChars, marketContext) + retryInstruction;
 
       const response = await generateWithGemini([
         { role: 'user', content: prompt }

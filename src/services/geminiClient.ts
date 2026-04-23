@@ -40,12 +40,11 @@ export async function generateWithGemini(messages: ChatMessage[]): Promise<{ tex
   }
 
   const normalizeModel = (name: string) => {
-    // Map legacy names (without -latest) to current GA suffix to reduce 404 risk
-    if (/^gemini-1\.5-pro$/.test(name)) return 'gemini-1.5-pro-latest';
-    if (/^gemini-1\.5-flash$/.test(name)) return 'gemini-1.5-flash-latest';
-    if (/^gemini-1\.5-flash-8b$/.test(name)) return 'gemini-1.5-flash-8b-latest';
-    if (/^gemini-pro$/.test(name)) return 'gemini-pro'; // keep for backward compat (may be deprecated)
-    if (/^gemini-2\.0-flash$/.test(name)) return 'gemini-2.0-flash';
+    // Map legacy 1.5 names to current 2.5 equivalents if anyone still passes them via env
+    if (/^gemini-1\.5-pro(-latest)?$/.test(name)) return 'gemini-2.5-pro';
+    if (/^gemini-1\.5-flash(-latest)?$/.test(name)) return 'gemini-2.5-flash';
+    if (/^gemini-1\.5-flash-8b(-latest)?$/.test(name)) return 'gemini-2.5-flash-lite';
+    if (/^gemini-2\.0-flash$/.test(name)) return 'gemini-2.5-flash'; // 2.0-flash shuts down June 2026
     return name;
   };
   const modelsToTry = (config.geminiModels?.length ? config.geminiModels : [config.geminiModel]).map(normalizeModel);
