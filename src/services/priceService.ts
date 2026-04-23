@@ -57,12 +57,12 @@ const CHAIN_TOKEN_COINGECKO_IDS = [
   'bitcoin',       // BTC — market-wide indicator
   'ethereum',      // ETH — Ethereum, Base, Linea, Blast gas token
   'binancecoin',   // BNB — BNB Smart Chain
-  'avalanche-2',   // AVAX — Avalanche
-  'matic-network', // POL/MATIC — Polygon
-  'arbitrum',      // ARB — Arbitrum
-  'mantle',        // MNT — Mantle
-  'blast',         // BLAST — Blast L2 governance token
-  'solana',        // SOL — roadmap: Base↔Solana bridge + Raydium pair
+  'avalanche-2',            // AVAX — Avalanche
+  'polygon-ecosystem-token', // POL — Polygon (rebranded from MATIC, new CoinGecko ID)
+  'arbitrum',               // ARB — Arbitrum
+  'mantle',                 // MNT — Mantle
+  'blast',                  // BLAST — Blast L2 governance token
+  'solana',                 // SOL — roadmap: Base↔Solana bridge + Raydium pair
 ];
 
 // Human-readable symbol map
@@ -71,7 +71,7 @@ const COINGECKO_SYMBOL: Record<string, string> = {
   ethereum: 'ETH',
   binancecoin: 'BNB',
   'avalanche-2': 'AVAX',
-  'matic-network': 'POL',
+  'polygon-ecosystem-token': 'POL',
   arbitrum: 'ARB',
   mantle: 'MNT',
   blast: 'BLAST',
@@ -86,6 +86,7 @@ let lastFetch: number = 0;
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatUsd(value: number): string {
+  if (!value || value <= 0) return 'unavailable';
   if (value < 0.000001) return `$${value.toExponential(2)}`;
   if (value < 0.01) return `$${value.toFixed(8)}`;
   if (value < 1) return `$${value.toFixed(4)}`;
@@ -175,13 +176,15 @@ async function fetchTopTokens(): Promise<TopTokenPrice[]> {
 
     const json = await res.json() as any[];
 
-    return json.map((coin, idx) => ({
-      symbol: COINGECKO_SYMBOL[coin.id] ?? coin.symbol.toUpperCase(),
-      name: coin.name,
-      priceUsd: formatUsd(coin.current_price ?? 0),
-      priceChange24h: formatChange(coin.price_change_percentage_24h ?? 0),
-      marketCapRank: idx + 1,
-    }));
+    return json
+      .filter((coin) => coin.current_price != null && coin.current_price > 0) // skip stale/null data
+      .map((coin, idx) => ({
+        symbol: COINGECKO_SYMBOL[coin.id] ?? coin.symbol.toUpperCase(),
+        name: coin.name,
+        priceUsd: formatUsd(coin.current_price),
+        priceChange24h: formatChange(coin.price_change_percentage_24h ?? 0),
+        marketCapRank: idx + 1,
+      }));
   } catch (err: any) {
     logger.warn({ err: err?.message }, 'CoinGecko fetch failed — skipping top tokens');
     return [];

@@ -2,8 +2,8 @@
 
 **Purpose of this file:** This document exists so that any AI assistant (Claude, Gemini, GPT, or future models) can be dropped into this codebase cold and immediately understand the full project, architecture, current state, and what to do next. Read this file first before touching anything.
 
-**Last updated:** April 23, 2026  
-**Server version:** 0.1.2  
+**Last updated:** April 23, 2026 (v2)  
+**Server version:** 0.1.3  
 **Related repo:** official-charlie-bull (frontend — has its own PROJECT_CONTEXT.md)
 
 ---
@@ -214,11 +214,12 @@ Charlie is an autonomous AI persona built on Google Gemini. His full identity an
 ### Persona Rules (enforced in system prompt)
 - Enthusiastic, friendly DeFi dog assistant
 - Concise answers — short paragraphs or bullet points
+- Plain text only — no markdown bold (`**text**`), italic, headers, or bullet dashes. Numbers and prices written inline without special formatting.
 - Never fabricates protocols, token addresses, partnerships, audits, APRs, or yields
 - Encourages DYOR, self-custody, scam vigilance
 - Refuses investment advice, tax advice, illegal activity
 - Redirects unrelated chit-chat back to crypto/DeFi
-- **Signature rule:** Every response ends with exactly one dog emoji (`🐕` or `🐶`) — enforced by `ensureDogEmoji()`
+- `ensureDogEmoji(message)` — strips markdown bold/italic (`**text**`, `__text__`) then ensures exactly one trailing dog emoji. Called on every response across all platforms.
 
 ### Response Formatting by Platform
 | Platform | Rules |
@@ -325,6 +326,8 @@ This is the **single source of truth** for all project data. It is the first fil
 - **Graceful failure:** Never throws. All fetch errors are caught and logged; the caller receives empty arrays and continues normally.
 - **8-second timeout** on all outbound fetches via `AbortSignal.timeout(8000)`.
 - **Key exports:** `getMarketSnapshot()`, `formatMarketContext(snapshot)` (for prompt injection), `formatCharPriceResponse(snapshot)` (for user-facing responses).
+- **CoinGecko IDs:** POL uses `polygon-ecosystem-token` (NOT `matic-network` — that was the deprecated MATIC ID which returns stale/zero price data post-rebranding). BLAST uses `blast`. MNT uses `mantle`.
+- **Zero-price filter:** Tokens with `current_price == null` or `<= 0` are filtered out before injection so Charlie never reports `$0.00` for a live token.
 
 ### `memoryStore.ts` — Session Memory
 - In-memory `Map<sessionId, messages[]>` — **does not persist across server restarts**

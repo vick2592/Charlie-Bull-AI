@@ -1,4 +1,195 @@
-# 🎨 FRONTEND PROMPT - Charlie Bull Website Tokenomics Update
+# Charlie Bull Frontend Update Prompt
+
+**Date:** April 23, 2026  
+**Backend version:** 0.1.3  
+**Use this file to:** Brief an AI assistant (or developer) to update the Charlie Bull Next.js frontend to match all current backend data and UI needs.
+
+---
+
+## Context
+
+The `charlie-ai-server` backend has received a major update (v0.1.3). The frontend (`official-charlie-bull` repo) needs to be updated to align with the following changes:
+
+1. Roadmap corrected — Q1 2026 is now complete, TGE moved to Q3 2026
+2. Cross-chain protocols updated — LayerZero removed, Base↔Solana Bridge added
+3. $BULL burn mechanics clarified — burned from Ethereum liquidity, hardcoded
+4. Gemini 2.5 AI upgrade (internal, no UI change needed)
+5. Live market data now available from the backend (potential new UI feature)
+
+---
+
+## 1. Roadmap Updates (REQUIRED)
+
+The Woof Paper / roadmap page must reflect the following. This is the authoritative version from whitepaper v1.0.3.
+
+| Quarter | Title | Status |
+|---------|-------|--------|
+| Q4 2025 | AI Integration | ✅ Complete |
+| Q1 2026 | AI Growth & Analysis | ✅ Complete |
+| Q2 2026 | CoinGecko & Etherscan Approval | 🔄 In Progress |
+| Q3 2026 | $CHAR Token Generation Event (TGE) on Base via Aerodrome | ⏳ Upcoming |
+| Q3–Q4 2026 | Cross-Chain Expansion — all 9 chains | ⏳ Upcoming |
+| Q4 2026 | $BULL Launch on Pump.fun + 1B $CHAR Burn + Weekly Podcasts | ⏳ Upcoming |
+| Q1 2027 | Base ↔ Solana Bridge + CHAR/BULL Raydium Pair | ⏳ Upcoming |
+| Q2 2027 | Charlie's Angels NFT Launch on Solana + IP Development | ⏳ Upcoming |
+| Q3 2027+ | Ecosystem Expansion — DeFi utilities, governance, partnerships | ⏳ Future |
+
+**Key changes from previous version:**
+- Q1 2026 is NOW COMPLETE (was shown as in-progress)
+- TGE is Q3 2026 (was incorrectly shown as Q2)
+- Q2 2026 is the CoinGecko/Etherscan approval submission phase — TGE only after both confirmed
+- $BULL launch moved to Q4 2026 (after TGE and cross-chain expansion)
+
+---
+
+## 2. Cross-Chain Bridge Technology (REQUIRED)
+
+Remove all references to **LayerZero**. It is NOT part of Charlie Bull's stack.
+
+Current cross-chain protocols (replace any existing list):
+- **Axelar Network** — proof-of-stake cross-chain communication
+- **Squid Router** — single-transaction cross-chain swaps
+- **Base ↔ Solana Bridge** — connects EVM ecosystem to Solana (enables CHAR/BULL Raydium pair)
+
+Update anywhere the tech stack or bridge technology is listed (Woof Paper, about page, tokenomics page, etc.).
+
+---
+
+## 3. $BULL Token Details (REQUIRED)
+
+Update all $BULL descriptions to match this exactly:
+
+- **Name:** $BULL
+- **Platform:** Pump.fun (Solana)
+- **Supply:** 1,000,000,000 (1 Billion)
+- **Launch:** Q4 2026 (after $CHAR TGE)
+- **Pre-graduation:** $BULL powers educational streams and weekly Pump.fun podcasts. 1B $CHAR tokens are locked.
+- **On graduation:** 1B $CHAR is **permanently burned from Ethereum locked liquidity** — this is hardcoded, not a manual team action
+- **Post-graduation:** LP locked. CHAR/BULL swap pair launches on Raydium. $BULL holders get exclusive early access to Charlie's Angels NFT collection on Solana.
+
+Note: The CHAR/BULL Raydium pair requires the Base ↔ Solana bridge (Q1 2027) to be live first.
+
+---
+
+## 4. 9-Chain Deployment Table (VERIFY/UPDATE)
+
+Confirm the chain/DEX table everywhere it appears matches this exactly:
+
+| Chain | DEX | Notes |
+|-------|-----|-------|
+| Base | Aerodrome | ⭐ Launch pool |
+| Ethereum | Uniswap | |
+| Arbitrum | Uniswap | |
+| Polygon | QuickSwap | Token = POL (rebranded from MATIC) |
+| Avalanche | LFGJ | |
+| Binance Smart Chain | PancakeSwap | |
+| Mantle | Fusion X | |
+| Linea | Linea DEX | |
+| Blast | Blast DEX | |
+
+Contract address (same on ALL chains): `0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1`
+
+---
+
+## 5. Tokenomics Numbers (VERIFY)
+
+Confirm these are correct everywhere:
+
+| Allocation | % | Tokens |
+|------------|---|--------|
+| DEX Liquidity (locked) | 50% | 210,345,000,000 |
+| Community Airdrops & Rewards | 35% | 147,241,500,000 |
+| Team & IP Development | 15% | 63,103,500,000 |
+| **Total** | **100%** | **420,690,000,000** |
+
+---
+
+## 6. Woof Paper Version (REQUIRED)
+
+Update the version and date on the Woof Paper / docs page:
+- **Version:** 1.0.3
+- **Date:** April 23, 2026
+
+---
+
+## 7. Blog Posts Section (ADD if not present)
+
+The following Medium articles should be listed/linked:
+
+1. **"Charlie Bull: Q1 2026 Build Update — What We Shipped and What's Coming at TGE"**
+   - URL: https://medium.com/@charliebullart/charlie-bull-q1-2026-build-update-what-we-shipped-and-whats-coming-at-tge-aeee0d93a19d
+   - Date: April 19, 2026
+   - Summary: Full transparency update on AI system, infrastructure, Gemini upgrade, roadmap status, and TGE timeline.
+
+2. **"Charlie Bull ($CHAR) Tokenomics: The Blueprint for a DeFi Revolution"**
+   - URL: https://medium.com/@charliebullart/charlie-bull-char-tokenomics-the-blueprint-for-a-defi-revolution
+   - Date: December 15, 2025
+   - Summary: Comprehensive breakdown of $CHAR tokenomics, 9-chain deployment, and $BULL integration.
+
+---
+
+## 8. Optional — Live Price Widget (NEW FEATURE)
+
+The backend now serves live market data via `GET /v1/chat` (available through the normal chat flow). If you want to add a price ticker or market widget to the site:
+
+**$CHAR price source:** DexScreener — fetched by contract address `0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1`
+- API: `https://api.dexscreener.com/latest/dex/tokens/0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1`
+- Pre-TGE: no pairs exist yet, so price widget should show "Pre-TGE — Not listed yet"
+- Post-TGE: display best pair per chain sorted by liquidity
+
+**Chain native token prices:** CoinGecko free API (no key required)
+- BTC, ETH, BNB, AVAX, ARB, MNT, POL, BLAST, SOL
+- CoinGecko IDs: `bitcoin`, `ethereum`, `binancecoin`, `avalanche-2`, `arbitrum`, `mantle`, `polygon-ecosystem-token`, `blast`, `solana`
+- Note: POL uses `polygon-ecosystem-token` NOT `matic-network` (deprecated)
+
+This is optional — the backend already uses this data internally for Charlie's AI responses.
+
+---
+
+## 9. Social Links (VERIFY ALL)
+
+| Platform | URL / Handle |
+|----------|-------------|
+| Website | https://charliebull.art |
+| Woof Paper | https://charliebull.art/docs |
+| LinkTree | https://linktr.ee/charliebullart |
+| X/Twitter | https://x.com/CharlieBullArt |
+| Bluesky | https://bsky.app/profile/charliebull.art |
+| Telegram Bot | @Charlie_Bull_bot |
+| Telegram Group | https://t.me/+VUOILe0sPis3MmYx |
+| TikTok | https://tiktok.com/@charliebullart |
+| Medium | https://medium.com/@charliebullart |
+| GitHub | https://github.com/vick2592/Official-Charlie-Bull |
+| LinkedIn (Company) | https://www.linkedin.com/company/charlie-bull-inc/ |
+| Founder LinkedIn | https://www.linkedin.com/in/viktor-khachatryan-78a6a064/ |
+| Email | info@charliebull.art |
+
+---
+
+## 10. Chat Widget (NO CHANGES NEEDED)
+
+The chat widget (`ChatWidget.tsx`) calls `/api/chat` which proxies to the backend. No changes required — the backend upgrade is transparent to the frontend.
+
+Charlie now has live market data injected into every conversation automatically. Users asking "what's the price of ETH?" or "what chains is Charlie on?" will get accurate, up-to-date answers without any frontend changes.
+
+---
+
+## Files Most Likely to Need Changes
+
+Search the frontend repo for these patterns and update accordingly:
+
+- `LayerZero` — remove all references, replace with "Base ↔ Solana Bridge"
+- `Q2 2026` (TGE references) — update to `Q3 2026`
+- `Q1 2026` (roadmap status) — mark as complete
+- `matic` or `MATIC` — update to `POL` (Polygon rebranded)
+- `1.0.2` or `1.0.1` (Woof Paper version) — update to `1.0.3`
+- Roadmap component/data — apply full 9-phase roadmap above
+- Any hardcoded $BULL description — update burn mechanics wording
+
+---
+
+*Generated from charlie-ai-server PROJECT_CONTEXT.md v0.1.3 — April 23, 2026*
+
 
 ## Context
 You are working on the Charlie Bull frontend website repository. The backend AI server has been updated with comprehensive social media automation and enhanced knowledge base. Now we need to update the website documentation (Woof Paper) to reflect the complete tokenomics information.
