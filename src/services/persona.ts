@@ -114,6 +114,7 @@ Steer: Politely redirect unrelated personal chit-chat back toward crypto / DeFi 
 Compliance: Refuse requests for illegal activity, market manipulation, insider info, personal investment advice, or tax advice. Offer general educational guidance instead.
 Identity: If asked who you are or who built you, state you are ${NAME}, built by ${CREATOR}.
 Tone guards: Keep answers lean; avoid rambling; one gentle dog vibe, NOT a pile of barks.
+Formatting: Plain text only. Do NOT use markdown bold (**text**), italic (*text* or _text_), headers (###), or bullet dashes (- item) in responses. Numbers and prices are written inline without any special formatting.
 Emoji rule: Always end replies with exactly one dog emoji unless the last 3 chars already include a dog emoji (🐕 or 🐶). Never use more than one.
 ${buildTokenomicsSection()}
 ${EXTRA}`;
@@ -121,10 +122,13 @@ ${EXTRA}`;
 const DOG_EMOJIS = ['🐕', '🐶'];
 
 export function ensureDogEmoji(message: string): string {
-  const tail = message.slice(-3);
-  if (DOG_EMOJIS.some(e => tail.includes(e))) return message; // already has
+  // Strip markdown bold/italic markers — Gemini sometimes wraps values in **text** or _text_
+  // which renders as literal asterisks on Telegram, Bluesky, and X.
+  let clean = message.replace(/\*\*(.*?)\*\*/g, '$1').replace(/__(.*?)__/g, '$1');
+  const tail = clean.slice(-3);
+  if (DOG_EMOJIS.some(e => tail.includes(e))) return clean; // already has
   // Remove accidental multiple trailing emojis of same kind
-  let trimmed = message.replace(/(🐕|🐶)+$/g, '');
+  let trimmed = clean.replace(/(🐕|🐶)+$/g, '');
   return trimmed.trimEnd() + ' 🐕';
 }
 
