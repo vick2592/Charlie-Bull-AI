@@ -4,16 +4,20 @@ import { z } from 'zod';
 const ConfigSchema = z.object({
   PORT: z.string().optional().default('8080'),
   GEMINI_API_KEY: z.string().optional(),
-  GEMINI_API_VERSION: z.string().optional().default('v1'),
+  GEMINI_API_VERSION: z.string().optional().default('v1beta'),
   ALLOWED_ORIGINS: z.string().optional().default('http://localhost:3000'),
   GLOBAL_RATE_LIMIT: z.string().optional().default('100'),
   SESSION_RATE_LIMIT: z.string().optional().default('8'),
   WINDOW_SECONDS: z.string().optional().default('60'),
   MAX_TOKENS: z.string().optional().default('1024'),
-  // Use gemini-2.5-pro as primary (stable until June 2026), with 2.5-flash fallbacks.
-  // gemini-1.5-* are deprecated — do NOT use them.
-  GEMINI_MODEL: z.string().optional().default('gemini-2.5-pro'),
-  GEMINI_MODELS: z.string().optional().default('gemini-2.5-pro,gemini-2.5-flash,gemini-2.5-flash-lite'),
+  // Free-tier optimised chain (Apr 2026):
+  //   gemini-3.1-flash-lite-preview → 15 RPM (best free tier)
+  //   gemini-2.5-flash-lite         → 10 RPM (fallback)
+  // gemini-3.1-pro-preview has 0 RPM on free tier — omitted from default chain.
+  // Upgrade to paid and add gemini-3.1-pro-preview as primary once rate limits allow.
+  // Preview models auto-use v1beta — normalizeModel() in geminiClient.ts handles this.
+  GEMINI_MODEL: z.string().optional().default('gemini-3.1-flash-lite-preview'),
+  GEMINI_MODELS: z.string().optional().default('gemini-3.1-flash-lite-preview,gemini-2.5-flash-lite'),
   CHARLIE_NAME: z.string().optional().default('Charlie'),
   CHARLIE_CREATOR: z.string().optional().default('Charlie Bull'),
   CHARLIE_PERSONA_EXTRA: z.string().optional().default('')
