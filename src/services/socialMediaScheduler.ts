@@ -562,6 +562,38 @@ Output ONLY the post text (${maxChars} chars max). No quotes. No labels. No prea
   }
 
   /**
+   * Strip any model-generated signature, hashtag footers, or persona emojis from
+   * social post/reply content BEFORE the formatter appends the official signature.
+   *
+   * Why this is needed:
+   * - Gemini sometimes appends hashtag/emoji lines (e.g. "🐂 #CharlieBull 🚀") despite
+   *   being told not to, causing a double-signature when the formatter also appends one.
+   * - generateWithGemini always calls ensureDogEmoji(), which adds a trailing 🐕 that
+   *   is meant for chat but is wrong for scheduled social posts.
+   */
+  private stripSocialSignature(text: string): string {
+    // Remove trailing dog emoji added by ensureDogEmoji (not wanted in social post content)
+    let cleaned = text.trim().replace(/\s*[🐕🐶]\s*$/, '');
+
+    // Strip trailing lines that are model-generated signatures or hashtag footers
+    const lines = cleaned.split('\n');
+    while (lines.length > 0) {
+      const lastLine = lines[lines.length - 1].trim();
+      if (
+        !lastLine ||                             // empty line
+        /^[-–]\s*charlie/i.test(lastLine) ||    // "- Charlie AI..." or "- Charlie Bull..." sign-off
+        /#CharlieBull/i.test(lastLine)           // any line containing our hashtag (formatter adds its own)
+      ) {
+        lines.pop();
+      } else {
+        break;
+      }
+    }
+
+    return lines.join('\n').trim();
+  }
+
+  /**
    * Generate post content using Gemini with topic rotation and variety enforcement
    * Includes retry logic if response is too long
    */
@@ -605,7 +637,7 @@ Output ONLY the post text (${maxChars} chars max). No quotes. No labels. No prea
         return null;
       }
 
-      const responseText = (response.text || '').trim();
+      const responseText = this.stripSocialSignature(response.text || '');
 
       if (responseText.length > maxContentChars) {
         logger.warn({
@@ -758,7 +790,7 @@ Generate ONLY the reply text (no signatures, no emojis):`;
         return null;
       }
 
-      const responseText = (response.text || '').trim();
+      const responseText = this.stripSocialSignature(response.text || '');
       
       // Check if response is too long BEFORE formatting
       if (responseText.length > maxContentChars) {

@@ -267,6 +267,7 @@ export async function POST(req: Request) {
 - [x] X free-tier compatibility fix (legacy reply endpoint)
 - [x] Admin API key for write endpoint security
 - [x] AWS ECR + EC2 deployment pipeline
+- [x] Double-signature fix (`stripSocialSignature()` — strips model-generated sign-offs before formatter appends official signature)
 - [ ] X Basic tier upgrade → automated reply re-enable
 - [ ] Tests (vitest)
 - [ ] Blog post management system

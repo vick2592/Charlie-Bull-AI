@@ -2,8 +2,8 @@
 
 **Purpose of this file:** This document exists so that any AI assistant (Claude, Gemini, GPT, or future models) can be dropped into this codebase cold and immediately understand the full project, architecture, current state, and what to do next. Read this file first before touching anything.
 
-**Last updated:** April 23, 2026 (v2)  
-**Server version:** 0.1.3  
+**Last updated:** April 26, 2026 (v3)  
+**Server version:** 0.1.4  
 **Related repo:** official-charlie-bull (frontend — has its own PROJECT_CONTEXT.md)
 
 ---
@@ -248,6 +248,8 @@ Charlie is an autonomous AI persona built on Google Gemini. His full identity an
 
 **14-post memory:** The scheduler tracks the last 14 topic+type combinations to prevent repetition.
 
+**`stripSocialSignature()` (double-signature fix, v0.1.4):** Gemini sometimes appends its own hashtag/emoji footer (e.g. `🐂 #CharlieBull 🚀`) or sign-off lines despite prompt instructions, and `generateWithGemini` always adds a trailing dog emoji via `ensureDogEmoji()`. Without cleanup, the platform formatter would then append the official `- Charlie AI 🐾🐶 #CharlieBull` signature on top — resulting in a double signature. `stripSocialSignature()` is called on Gemini's raw output in both `generatePostContent` and `generateReplyContent` before the formatter runs. It removes: trailing `🐕`/`🐶` emojis, empty trailing lines, model-generated `- Charlie…` sign-off lines, and any line containing `#CharlieBull`.
+
 ### Platform Status
 | Platform | Handle | Status | Notes |
 |----------|--------|--------|-------|
@@ -316,7 +318,7 @@ This is the **single source of truth** for all project data. It is the first fil
 - Tries models in the `GEMINI_MODELS` chain order until one succeeds
 - Model normalization: maps any deprecated `gemini-1.5-*` / `gemini-2.0-flash` names to the current `gemini-2.5-*` equivalents so old env values degrade gracefully
 - Falls back to mock response if `GEMINI_API_KEY` is not set (safe for dev)
-- Always applies `ensureDogEmoji()` to output
+- Always applies `ensureDogEmoji()` to output — this is correct for chat/Telegram responses but is stripped by `stripSocialSignature()` in the scheduler before post formatting (see below)
 - Returns `{ text, isError: true }` on all failure paths (rate limit, network, auth) — callers must check `isError` before using the text. The scheduler uses this to skip posting rather than publish an error string.
 
 ### `priceService.ts` — Live Market Data

@@ -44,6 +44,10 @@ async function start() {
   try {
     await app.listen({ port: config.port, host: '0.0.0.0' });
     app.log.info({ port: config.port }, 'server_started');
+    app.log.info(
+      { primary: config.geminiModel, chain: config.geminiModels, apiVersion: config.geminiApiVersion },
+      'gemini_model_chain_active'
+    );
     
     // Start Telegram polling if configured
     startTelegramIfConfigured();
