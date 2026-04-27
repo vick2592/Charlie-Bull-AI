@@ -2,8 +2,8 @@
 
 **Purpose of this file:** This document exists so that any AI assistant (Claude, Gemini, GPT, or future models) can be dropped into this codebase cold and immediately understand the full project, architecture, current state, and what to do next. Read this file first before touching anything.
 
-**Last updated:** April 26, 2026 (v3)  
-**Server version:** 0.1.4  
+**Last updated:** April 27, 2026 (v4)  
+**Server version:** 0.1.5  
 **Related repo:** official-charlie-bull (frontend — has its own PROJECT_CONTEXT.md)
 
 ---
@@ -248,7 +248,9 @@ Charlie is an autonomous AI persona built on Google Gemini. His full identity an
 
 **14-post memory:** The scheduler tracks the last 14 topic+type combinations to prevent repetition.
 
-**`stripSocialSignature()` (double-signature fix, v0.1.4):** Gemini sometimes appends its own hashtag/emoji footer (e.g. `🐂 #CharlieBull 🚀`) or sign-off lines despite prompt instructions, and `generateWithGemini` always adds a trailing dog emoji via `ensureDogEmoji()`. Without cleanup, the platform formatter would then append the official `- Charlie AI 🐾🐶 #CharlieBull` signature on top — resulting in a double signature. `stripSocialSignature()` is called on Gemini's raw output in both `generatePostContent` and `generateReplyContent` before the formatter runs. It removes: trailing `🐕`/`🐶` emojis, empty trailing lines, model-generated `- Charlie…` sign-off lines, and any line containing `#CharlieBull`.
+**`stripSocialSignature()` (double-signature fix, v0.1.4):** Gemini sometimes appends its own hashtag/emoji footer or sign-off lines despite prompt instructions, and `generateWithGemini` always adds a trailing dog emoji via `ensureDogEmoji()`. Without cleanup, the platform formatter would then append the official `- Charlie AI 🐾🐶 #CharlieBull` signature on top — resulting in a double signature. `stripSocialSignature()` is called on Gemini's raw output in both `generatePostContent` and `generateReplyContent` before the formatter runs. It removes: trailing `🐕`/`🐶` emojis (with `u` flag for correct surrogate-pair handling — v0.1.5 fix), any other trailing pictographic emoji via `\p{Extended_Pictographic}`, empty trailing lines, model-generated `- Charlie…` sign-off lines, and any line containing `#CharlieBull`.
+
+**Pre-TGE accuracy (v0.1.5):** $CHAR is pre-TGE — the contract address exists on all 9 chains but there are NO active DEX liquidity pools. The token is not yet purchasable or tradeable. TGE launches Q3 2026 on Base via Aerodrome. This is enforced in: `knowledgeBase.ts` (keyFeatures + tokenomics.notes), `persona.ts` (PRE-TGE STATUS block at top of knowledge section, Pre-TGE Compliance line in SYSTEM_PERSONA), and `socialMediaScheduler.ts` (chain_spotlight, same_contract, why_base_l2, chain_comparison topic prompts updated; HARD RULE added; generateReplyContent About section updated).
 
 ### Platform Status
 | Platform | Handle | Status | Notes |

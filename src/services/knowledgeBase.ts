@@ -79,14 +79,14 @@ export const knowledgeBase: KnowledgeBase = {
     mission:
       'Making cryptocurrency accessible to everyone through educational resources, AI-powered assistance, and seamless cross-chain functionality.',
     keyFeatures: [
-      'Cross-chain deployment on 9 major blockchain networks',
-      'Same contract address (0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1) across all chains',
-      'Launch liquidity pool on Base via Aerodrome',
-      'Multi-DEX support: Uniswap, PancakeSwap, QuickSwap, LFGJ, Fusion X, and more',
+      'Contract address registered on 9 major blockchain networks — PRE-TGE: no active DEX liquidity pools yet',
+      'Same contract address (0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1) across all 9 chains — simplifies bridging and verification post-TGE',
+      'Planned TGE launch pool on Base via Aerodrome (Q3 2026) — token NOT yet available for purchase',
+      'Multi-DEX roadmap post-TGE: Uniswap, PancakeSwap, QuickSwap, LFGJ, Fusion X — liquidity added chain by chain after TGE',
       'AI-powered educational assistant (Charlie) on Telegram, Bluesky, X, and website',
       'Community-first tokenomics: 35% for airdrops and rewards',
-      'Seamless cross-chain bridging via Axelar Network and Squid Router',
-      'Base ↔ Solana bridge unlocks CHAR/BULL swap pair on Raydium',
+      'Cross-chain bridging planned via Axelar Network and Squid Router — active post-TGE',
+      'Base ↔ Solana bridge unlocks CHAR/BULL swap pair on Raydium (Q1 2027)',
       'Educational $BULL token (1B supply) on Pump.fun — graduation burns 1B $CHAR permanently',
     ],
   },
@@ -113,6 +113,7 @@ export const knowledgeBase: KnowledgeBase = {
       },
     },
     notes: [
+      'PRE-TGE: $CHAR is NOT yet available for purchase or trading. The contract address exists on all 9 chains but there are ZERO active DEX liquidity pools. TGE launches Q3 2026 on Base via Aerodrome. After TGE, liquidity is bridged to other chains by the community.',
       '$BULL educational token (1B supply) launching Q4 2026 on Pump.fun (Solana)',
       'Pre-graduation: $BULL powers educational streams + weekly podcasts on Pump.fun. 1B $CHAR tokens are locked.',
       'Post-graduation: 1B $CHAR permanently burned from Ethereum locked liquidity (deflationary, hardcoded — not a manual team action)',

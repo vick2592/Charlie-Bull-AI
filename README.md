@@ -268,6 +268,8 @@ export async function POST(req: Request) {
 - [x] Admin API key for write endpoint security
 - [x] AWS ECR + EC2 deployment pipeline
 - [x] Double-signature fix (`stripSocialSignature()` — strips model-generated sign-offs before formatter appends official signature)
+- [x] Broken emoji fix (`u` flag + `\p{Extended_Pictographic}` strip in `stripSocialSignature` — prevents lone surrogate rendering as ?)
+- [x] Pre-TGE accuracy — Charlie no longer implies $CHAR is buyable/tradeable; knowledgeBase, system prompt, topic prompts, and reply prompt all corrected
 - [ ] X Basic tier upgrade → automated reply re-enable
 - [ ] Tests (vitest)
 - [ ] Blog post management system

@@ -484,7 +484,7 @@ export class SocialMediaScheduler {
     const chainB = chains.filter(c => c.name !== chainA.name)[Math.floor(Math.random() * (chains.length - 1))];
 
     const topicContextMap: Record<PostTopic, string> = {
-      chain_spotlight: `You're posting about ${randomChain.name} specifically. Charlie Bull ($CHAR) is live on ${randomChain.name} via ${randomChain.dex}${randomChain.isLaunchPool ? ' (this is the launch pool!)' : ''}. The contract address is the same across all 9 chains: ${tokenomics.contractAddress}. You can swap $CHAR on ${randomChain.dex} right now.`,
+      chain_spotlight: `You're posting about ${randomChain.name} and its role in Charlie Bull's upcoming cross-chain deployment. The same $CHAR contract address (${tokenomics.contractAddress}) is registered on ${randomChain.name}${randomChain.isLaunchPool ? ' — this is the PLANNED TGE launch pool on Aerodrome (Q3 2026)!' : `, with ${randomChain.dex} as the planned DEX post-TGE`}. IMPORTANT: $CHAR is pre-TGE. There are NO active liquidity pools on any chain right now. Do NOT say users can swap or buy $CHAR. Frame this as the upcoming cross-chain vision.`,
 
       tokenomics_fact: `Share a specific tokenomics fact. Total supply: ${tokenomics.totalSupply} $CHAR. Allocation: 50% (${tokenomics.allocation.liquidity.tokens}) goes to DEX liquidity across all chains, 35% (${tokenomics.allocation.community.tokens}) goes to community airdrops and rewards, 15% (${tokenomics.allocation.teamDev.tokens}) for IP and project expansion. Ticker is $CHAR. Same contract address on all 9 chains: ${tokenomics.contractAddress}.`,
 
@@ -496,9 +496,9 @@ export class SocialMediaScheduler {
 
       bridge_tech: `Charlie Bull uses three cross-chain protocols: Axelar Network, Squid Router, and the Base ↔ Solana Bridge. These power the ability for $CHAR to exist across chains with the SAME contract address (${tokenomics.contractAddress}). Axelar is a proof-of-stake chain purpose-built for cross-chain communication. Squid Router enables single-transaction cross-chain swaps. The Base ↔ Solana Bridge connects EVM and Solana ecosystems.`,
 
-      same_contract: `This is one of Charlie Bull's most unique features: the same contract address (${tokenomics.contractAddress}) works across all ${chains.length} chains — Ethereum, Avalanche, Arbitrum, Mantle, Base, Linea, Blast, Polygon, and BSC. You don't need a different address on each chain. This makes verification simple and scams harder.`,
+      same_contract: `One of Charlie Bull's standout features: the same contract address (${tokenomics.contractAddress}) is registered across all ${chains.length} chains — Ethereum, Avalanche, Arbitrum, Mantle, Base, Linea, Blast, Polygon, and BSC. IMPORTANT: $CHAR is pre-TGE — no liquidity pools are active yet. This same-address design means that after TGE, bridging is simple and scam verification is easier. You don't need a different address on each chain. Frame this as a pre-TGE feature highlight, not as something users can trade on right now.`,
 
-      why_base_l2: `Charlie Bull launched on Base, Ethereum's L2 built by Coinbase. Base offers Ethereum security with much lower gas fees. The launch liquidity pool is on Aerodrome, Base's top DEX. Base is part of the Superchain — Coinbase's vision for a network of connected L2s. Being on Base means fast, cheap transactions while staying in the Ethereum ecosystem.`,
+      why_base_l2: `Charlie Bull is launching on Base, Ethereum's L2 built by Coinbase. Base offers Ethereum security with much lower gas fees. The PLANNED TGE launch pool will be on Aerodrome — Base's top DEX by TVL — in Q3 2026. Base is part of the Superchain — Coinbase's vision for a network of connected L2s. IMPORTANT: $CHAR is pre-TGE, not yet tradeable. Frame this as an upcoming launch on Base, not a live token.`,
 
       community_airdrop: `35% of all $CHAR tokens — that's ${tokenomics.allocation.community.tokens} tokens — are set aside for community airdrops and engagement rewards. This is one of the largest community allocations in the project's tokenomics. The goal: reward early believers and active community members. Airdrop details will roll out closer to TGE Q2 2026.`,
 
@@ -508,7 +508,7 @@ export class SocialMediaScheduler {
 
       fun_personality: `This post should be mostly personality, minimal project info. Charlie is a playful puppy mascot who loves crypto. Be funny, relatable, or wholesome. Could be about puppy energy vs crypto market volatility, how Charlie handles a red market day, something silly about being a crypto dog, or just a fun observation. Keep it light. Don't force in technical details.`,
 
-      chain_comparison: `Compare ${chainA.name} (DEX: ${chainA.dex}) and ${chainB.name} (DEX: ${chainB.dex}) from Charlie Bull's perspective — both are chains where $CHAR is deployed. Compare gas fees, speed, ecosystem, or user experience. Stay factual and educational. Don't pick a favourite — Charlie is on both!`,
+      chain_comparison: `Compare ${chainA.name} (planned DEX: ${chainA.dex}) and ${chainB.name} (planned DEX: ${chainB.dex}) from Charlie Bull's perspective — both are chains where the $CHAR contract address is registered pre-TGE. Compare gas fees, speed, ecosystem, or why each chain was chosen. IMPORTANT: liquidity pools are not live yet on either chain — frame this as why these chains were selected for post-TGE deployment. Stay factual and educational. Don't pick a favourite — Charlie is planning for both.`,
 
       bull_burn_event: `When $BULL graduates on Pump.fun, 1 billion $CHAR tokens get permanently burned. This is a deflationary event hardcoded into the roadmap — it reduces $CHAR supply forever. The burn is triggered by $BULL graduation, not by the team manually. This ties the two tokens together: as $BULL grows, it drives a deflationary event in $CHAR.`,
     };
@@ -551,6 +551,7 @@ HARD RULES:
 - NO phrase "AI brain" or "my AI brain" or "learning from your engagement/feedback/interactions"
 - NO "pawsome", "woof!", "fetch!" or forced dog puns unless the post type is "fun" and it feels natural
 - Do NOT always end with a question. This is a ${postType} post — follow that structure.
+- Do NOT say "$CHAR is live", "you can swap $CHAR", "buy on [DEX]", or imply the token is currently purchasable or tradeable — $CHAR is PRE-TGE with no active liquidity pools anywhere. TGE is Q3 2026 on Base via Aerodrome.
 - Do NOT start with "Did you know" more than once per week (recently overused)
 - Do NOT use "fam" more than once per week (recently overused)
 - Write like a real person, not a marketing bot
@@ -572,8 +573,15 @@ Output ONLY the post text (${maxChars} chars max). No quotes. No labels. No prea
    *   is meant for chat but is wrong for scheduled social posts.
    */
   private stripSocialSignature(text: string): string {
-    // Remove trailing dog emoji added by ensureDogEmoji (not wanted in social post content)
-    let cleaned = text.trim().replace(/\s*[🐕🐶]\s*$/, '');
+    // Remove trailing emoji added by ensureDogEmoji or Gemini despite "no emoji" instructions.
+    // IMPORTANT: the u flag is required for correct surrogate-pair handling.
+    // Without u, the character class [🐕🐶] only matches individual UTF-16 code units,
+    // stripping only HALF of the emoji and leaving the other half as a lone surrogate
+    // that renders as the broken ? replacement character in posts.
+    let cleaned = text.trim().replace(/\s*[🐕🐶]\s*$/u, '');
+    // Belt-and-suspenders: strip any other trailing pictographic emoji Gemini may add
+    // (e.g. 🐂, 🚀, 🔥) despite the "NO emojis" instruction in the prompt.
+    cleaned = cleaned.replace(/\s*\p{Extended_Pictographic}+\s*$/u, '');
 
     // Strip trailing lines that are model-generated signatures or hashtag footers
     const lines = cleaned.split('\n');
@@ -761,7 +769,8 @@ You are Charlie Bull, a playful puppy mascot for a cross-chain cryptocurrency pr
 
 About Charlie Bull:
 - ${project.description}
-- Cross-chain token across 9+ blockchains
+- Contract address registered on 9 blockchains — PRE-TGE: no active liquidity pools yet
+- TGE launches Q3 2026 on Base via Aerodrome — $CHAR is NOT currently buyable or tradeable
 - Educational and community-focused
 - Built on Base L2
 
@@ -773,7 +782,8 @@ CRITICAL REQUIREMENTS:
 - DO NOT add your own sign-off (signature is added automatically)
 - Be helpful, friendly, and conversational
 - If the response is too long, prioritize the most important information
-- NEVER let your response get cut off mid-sentence${retryNote}
+- NEVER let your response get cut off mid-sentence
+- NEVER say $CHAR is available to buy, swap, or trade — it is pre-TGE with no active liquidity${retryNote}
 
 Generate ONLY the reply text (no signatures, no emojis):`;
 
