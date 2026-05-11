@@ -2,8 +2,8 @@
 
 **Purpose of this file:** This document exists so that any AI assistant (Claude, Gemini, GPT, or future models) can be dropped into this codebase cold and immediately understand the full project, architecture, current state, and what to do next. Read this file first before touching anything.
 
-**Last updated:** April 27, 2026 (v4)  
-**Server version:** 0.1.5  
+**Last updated:** May 11, 2026 (v5)  
+**Server version:** 0.1.6  
 **Related repo:** official-charlie-bull (frontend — has its own PROJECT_CONTEXT.md)
 
 ---
@@ -324,8 +324,9 @@ This is the **single source of truth** for all project data. It is the first fil
 - Returns `{ text, isError: true }` on all failure paths (rate limit, network, auth) — callers must check `isError` before using the text. The scheduler uses this to skip posting rather than publish an error string.
 
 ### `priceService.ts` — Live Market Data
+- **CoinCap v2 (primary):** Fetches native/governance token prices for all 9 chains + BTC. Free, no API key, 200 req/min rate limit. More reliable than CoinGecko free tier which can return stale data silently.
+- **CoinGecko (fallback):** Used if CoinCap returns fewer than 70% of expected tokens.
 - **DexScreener:** Fetches $CHAR on-chain price for every DEX pair by contract address. Takes the highest-liquidity pair per chain. Returns `[]` pre-TGE (no pairs = no post about price yet).
-- **CoinGecko (free tier, no key):** Fetches native/governance token prices for all 9 chains Charlie is deployed on, plus BTC as a market-wide indicator. Tracked tokens: BTC, ETH (Ethereum/Base/Linea/Blast), BNB (BSC), AVAX, ARB, MNT (Mantle), POL (Polygon), BLAST, SOL (roadmap bridge).
 - **5-minute cache:** Both data sources are cached together. A single `getMarketSnapshot()` call returns cached data if < 5 min old.
 - **Graceful failure:** Never throws. All fetch errors are caught and logged; the caller receives empty arrays and continues normally.
 - **8-second timeout** on all outbound fetches via `AbortSignal.timeout(8000)`.
