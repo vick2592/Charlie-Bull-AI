@@ -2,7 +2,7 @@
 
 **Purpose of this file:** This document exists so that any AI assistant (Claude, Gemini, GPT, or future models) can be dropped into this codebase cold and immediately understand the full project, architecture, current state, and what to do next. Read this file first before touching anything.
 
-**Last updated:** May 11, 2026 (v5)  
+**Last updated:** May 14, 2026 (v6)  
 **Server version:** 0.1.6  
 **Related repo:** official-charlie-bull (frontend — has its own PROJECT_CONTEXT.md)
 
@@ -175,8 +175,8 @@ Copy `deploy.env.example` to `deploy.env` and fill in secrets. **Never commit `d
 | `PORT` | `8080` | Server port |
 | `GEMINI_API_KEY` | — | **Required** for real AI responses (Google AI Studio) |
 | `GEMINI_API_VERSION` | `v1` | API version (`v1` = GA) |
-| `GEMINI_MODEL` | `gemini-2.5-pro` | Primary model (GA, stable until June 2026+) |
-| `GEMINI_MODELS` | `gemini-2.5-pro,gemini-2.5-flash,gemini-2.5-flash-lite` | Model fallback chain (comma-separated). `gemini-1.5-*` are deprecated — do not use. |
+| `GEMINI_MODEL` | `gemini-3.1-flash-lite` | Primary model (GA since May 7, 2026 — was `-preview`, deprecated May 25, 2026) |
+| `GEMINI_MODELS` | `gemini-3.1-flash-lite,gemini-2.5-flash-lite` | Model fallback chain (comma-separated). `gemini-1.5-*` are deprecated — do not use. |
 | `ALLOWED_ORIGINS` | `http://localhost:3000` | CORS origins (comma-separated) |
 | `GLOBAL_RATE_LIMIT` | `100` | Max requests per window (all sessions) |
 | `SESSION_RATE_LIMIT` | `8` | Max requests per window per sessionId |

@@ -79,14 +79,14 @@ export async function generateWithGemini(messages: ChatMessage[]): Promise<{ tex
   const normalizeModel = (name: string) => {
     // Pro models → flash-lite: gemini-3.1-pro-preview has 0 RPM on free tier.
     // If you upgrade to paid, set GEMINI_MODELS explicitly in your env instead of relying on the normalizer.
-    if (/^gemini-2\.5-pro(-latest)?$/.test(name)) return 'gemini-3.1-flash-lite-preview';
-    if (/^gemini-1\.5-pro(-latest)?$/.test(name)) return 'gemini-3.1-flash-lite-preview';
-    if (/^gemini-3\.1-pro(-preview)?$/.test(name)) return 'gemini-3.1-flash-lite-preview';
+    if (/^gemini-2\.5-pro(-latest)?$/.test(name)) return 'gemini-3.1-flash-lite';
+    if (/^gemini-1\.5-pro(-latest)?$/.test(name)) return 'gemini-3.1-flash-lite';
+    if (/^gemini-3\.1-pro(-preview)?$/.test(name)) return 'gemini-3.1-flash-lite';
     // Flash → keep as flash-lite for free tier headroom
-    if (/^gemini-2\.5-flash(-latest)?$/.test(name)) return 'gemini-3.1-flash-lite-preview';
+    if (/^gemini-2\.5-flash(-latest)?$/.test(name)) return 'gemini-3.1-flash-lite';
     if (/^gemini-2\.5-flash-lite(-latest)?$/.test(name)) return 'gemini-2.5-flash-lite';
-    if (/^gemini-1\.5-flash(-latest)?$/.test(name)) return 'gemini-3.1-flash-lite-preview';
-    if (/^gemini-1\.5-flash-8b(-latest)?$/.test(name)) return 'gemini-3.1-flash-lite-preview';
+    if (/^gemini-1\.5-flash(-latest)?$/.test(name)) return 'gemini-3.1-flash-lite';
+    if (/^gemini-1\.5-flash-8b(-latest)?$/.test(name)) return 'gemini-3.1-flash-lite';
     // 2.0 deprecated June 1, 2026
     if (/^gemini-2\.0-flash(-lite)?$/.test(name)) return 'gemini-2.5-flash-lite';
     return name;

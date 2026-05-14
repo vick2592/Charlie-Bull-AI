@@ -61,8 +61,8 @@ See `deploy.env.example` (production/EC2) or `.env.example` (local dev).
 |----------|---------|-------------|
 | `PORT` | `8080` | Server port |
 | `GEMINI_API_KEY` | — | Google Gemini API key (required) |
-| `GEMINI_MODEL` | `gemini-1.5-pro-latest` | Primary model |
-| `GEMINI_MODELS` | (see example) | Comma-separated fallback models |
+| `GEMINI_MODEL` | `gemini-3.1-flash-lite` | Primary model (GA since May 7 2026) |
+| `GEMINI_MODELS` | `gemini-3.1-flash-lite,gemini-2.5-flash-lite` | Comma-separated fallback models |
 | `ALLOWED_ORIGINS` | `http://localhost:3000` | CORS origins |
 
 ### Persona
@@ -335,7 +335,7 @@ See `.env.example` or `deploy.env.example`. Key variables:
 
 ### Core Configuration
 - `GEMINI_API_KEY` - Your Google Gemini API key (required)
-- `GEMINI_MODEL` - Primary model (default: `gemini-2.0-flash`)
+- `GEMINI_MODEL` - Primary model (default: `gemini-3.1-flash-lite`)
 - `GEMINI_MODELS` - Comma-separated fallback models
 - `PORT` - Server port (default: 8080)
 

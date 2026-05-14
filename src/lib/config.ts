@@ -10,14 +10,13 @@ const ConfigSchema = z.object({
   SESSION_RATE_LIMIT: z.string().optional().default('8'),
   WINDOW_SECONDS: z.string().optional().default('60'),
   MAX_TOKENS: z.string().optional().default('1024'),
-  // Free-tier optimised chain (Apr 2026):
-  //   gemini-3.1-flash-lite-preview → 15 RPM (best free tier)
-  //   gemini-2.5-flash-lite         → 10 RPM (fallback)
+  // Free-tier optimised chain (May 2026):
+  //   gemini-3.1-flash-lite → 15 RPM (best free tier, GA since May 7, 2026)
+  //   gemini-2.5-flash-lite → 10 RPM (fallback)
   // gemini-3.1-pro-preview has 0 RPM on free tier — omitted from default chain.
   // Upgrade to paid and add gemini-3.1-pro-preview as primary once rate limits allow.
-  // Preview models auto-use v1beta — normalizeModel() in geminiClient.ts handles this.
-  GEMINI_MODEL: z.string().optional().default('gemini-3.1-flash-lite-preview'),
-  GEMINI_MODELS: z.string().optional().default('gemini-3.1-flash-lite-preview,gemini-2.5-flash-lite'),
+  GEMINI_MODEL: z.string().optional().default('gemini-3.1-flash-lite'),
+  GEMINI_MODELS: z.string().optional().default('gemini-3.1-flash-lite,gemini-2.5-flash-lite'),
   CHARLIE_NAME: z.string().optional().default('Charlie'),
   CHARLIE_CREATOR: z.string().optional().default('Charlie Bull'),
   CHARLIE_PERSONA_EXTRA: z.string().optional().default('')
