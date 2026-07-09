@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Helper script to run the charlie container using an env file.
 # Usage: ./scripts/run-with-env.sh /path/to/envfile [image-tag]
-# Defaults to ./deploy.env and image tag tokenomics2 if not supplied.
+# Defaults to ./deploy.env and charlie-ai-server:latest if not supplied.
 
 set -euo pipefail
 ENV_FILE=${1:-./deploy.env}
-IMAGE_TAG=${2:-184198557383.dkr.ecr.us-east-1.amazonaws.com/charlie-ai-server:tokenomics3}
+IMAGE_TAG=${2:-charlie-ai-server:latest}
 
 if [ ! -f "$ENV_FILE" ]; then
   echo "Env file not found: $ENV_FILE" >&2

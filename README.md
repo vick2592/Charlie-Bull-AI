@@ -5,7 +5,7 @@ Fastify + TypeScript microservice exposing `POST /v1/chat` backed by Google Gemi
 ---
 
 ## Status
-✅ **Production** — deployed on AWS EC2 (`54.88.112.222`) via Docker + ECR
+✅ **Production** — deployed on Hetzner CX23 via Docker
 
 ### Core Features
 - ✅ Config validation (zod)
@@ -39,7 +39,7 @@ curl -s localhost:8080/healthz
 |--------|------|------|-------------|
 | GET | `/healthz` | — | Liveness probe. Returns `{ "status": "ok" }`. Fast, no Gemini calls. |
 | POST | `/v1/chat` | — | Chat with Charlie (persona + safety + rate limiting + memory). |
-| GET | `/social/status` | — | Social automation status, quotas, scheduler state. |
+| GET | `/api/social/status` | — | Social automation status, quotas, scheduler state. |
 | GET | `/social/quota` | — | Daily quota breakdown per platform. |
 | GET | `/social/x/tier` | — | X API tier detection (free vs Basic). Legacy info endpoint. |
 | GET | `/social/interactions/pending` | — | Pending Bluesky interaction queue. |
@@ -54,7 +54,7 @@ curl -s localhost:8080/healthz
 
 ## Environment Variables
 
-See `deploy.env.example` (production/EC2) or `.env.example` (local dev).
+See `deploy.env.example` (production) or `.env.example` (local dev).
 
 ### Core
 | Variable | Default | Description |
@@ -169,32 +169,25 @@ If `originalMessage` is provided, Gemini generates the reply. If `content` is pr
 
 ---
 
-## AWS Deployment Workflow
+## Hetzner Deployment Workflow
 
-The server runs on EC2 (`54.88.112.222`) using Docker. Images are stored in ECR.
+The server now runs on Hetzner CX23 using Docker. The recommended path is to build locally and push the image plus environment file to the Hetzner host with `deploy-to-hetzner.sh`.
 
 ### Full Deploy from Local
 
 ```bash
-# 1. Build Docker image
-docker build -t charlie-ai-server:latest .
+# 1. Build and ship to Hetzner over SSH
+./deploy-to-hetzner.sh ubuntu YOUR-HETZNER-IP ghcr.io/your-org/charlie-ai-server:latest
 
-# 2. Push to ECR (authenticates, tags, and pushes)
-./push-to-ecr.sh
-
-# 3. SSH into EC2 and pull new image
-ssh ec2-user@54.88.112.222
-./update-from-ecr.sh
-
-# 4. Verify
-curl http://54.88.112.222:8080/healthz
-curl http://54.88.112.222:8080/social/status
+# 2. Verify on the Hetzner host
+curl http://YOUR-HETZNER-IP/healthz
+curl http://YOUR-HETZNER-IP/api/social/status
 docker logs -f charlie-ai
 ```
 
-### EC2 Environment File
+### Hetzner Environment File
 
-The container reads `~/deploy.env` on the EC2 instance. Ensure it contains all required vars including `ADMIN_API_KEY`. Copy from `deploy.env.example` as a reference.
+The container reads `~/charlie-ai.env` on the Hetzner instance. Ensure it contains all required vars including `ADMIN_API_KEY`. Copy from `deploy.env.example` as a reference.
 
 ---
 
@@ -266,7 +259,7 @@ export async function POST(req: Request) {
 - [x] Platform-specific formatting (X vs Bluesky)
 - [x] X free-tier compatibility fix (legacy reply endpoint)
 - [x] Admin API key for write endpoint security
-- [x] AWS ECR + EC2 deployment pipeline
+- [x] Hetzner CX23 deployment pipeline
 - [x] Double-signature fix (`stripSocialSignature()` — strips model-generated sign-offs before formatter appends official signature)
 - [x] Broken emoji fix (`u` flag + `\p{Extended_Pictographic}` strip in `stripSocialSignature` — prevents lone surrogate rendering as ?)
 - [x] Pre-TGE accuracy — Charlie no longer implies $CHAR is buyable/tradeable; knowledgeBase, system prompt, topic prompts, and reply prompt all corrected
@@ -322,7 +315,7 @@ curl -s localhost:8080/healthz
 |--------|-------------------------|-------------|
 | GET    | /healthz                | Lightweight liveness probe that does not touch Gemini; returns `{ "status": "ok" }`. |
 | POST   | /v1/chat                | Chat with Charlie (persona + safety + rate limiting + memory). |
-| GET    | /social/status          | View social media automation status and daily quotas. |
+| GET    | /api/social/status      | View social media automation status and daily quotas. |
 | GET    | /social/queue           | View pending interactions queue for both platforms. |
 | POST   | /social/test/bluesky    | Test Bluesky posting functionality. |
 | POST   | /social/test/x          | Test X/Twitter posting functionality. |
@@ -393,7 +386,7 @@ Charlie can automatically manage your Bluesky and X/Twitter accounts with intell
 
 Check automation status:
 ```bash
-curl http://localhost:8080/social/status
+curl http://localhost:8080/api/social/status
 ```
 
 View pending interactions:

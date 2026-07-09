@@ -2,7 +2,7 @@
 
 **Purpose of this file:** This document exists so that any AI assistant (Claude, Gemini, GPT, or future models) can be dropped into this codebase cold and immediately understand the full project, architecture, current state, and what to do next. Read this file first before touching anything.
 
-**Last updated:** May 14, 2026 (v6)  
+**Last updated:** July 9, 2026 (v7)
 **Server version:** 0.1.6  
 **Related repo:** official-charlie-bull (frontend — has its own PROJECT_CONTEXT.md)
 
@@ -75,14 +75,13 @@ charlie-ai-server/
 ├── Dockerfile                     # Multi-stage build (deps → build → prod-deps → prod)
 ├── deploy.env.example             # Template for all env vars (copy → deploy.env, fill secrets)
 ├── deploy.env                     # ⚠️ NEVER COMMIT — real secrets live here
-├── deploy-to-aws.sh               # Local → EC2 deploy script (save image, SCP, SSH, run)
-├── push-to-ecr.sh                 # Push Docker image to AWS ECR
-├── update-from-ecr.sh             # Pull latest image from ECR on EC2 and restart
+├── deploy-to-hetzner.sh           # Local → Hetzner deploy script (save image, SCP, SSH, run)
 ├── package.json
 ├── tsconfig.json
 ├── cspell.json                    # Spell check config (VS Code CSpell extension)
 ├── ARCHITECTURE.md                # System architecture diagram
-├── AWS_DEPLOYMENT.md              # Step-by-step EC2 deployment guide
+├── hetzner-deployment.md          # Step-by-step Hetzner deployment guide
+├── frontend-migration-prompt.md   # Standalone prompt for the frontend repo handoff
 ├── SOCIAL_MEDIA_TESTING.md        # How to test Bluesky/X endpoints manually
 ├── FRONTEND_PROMPT.md             # Prompt used to generate the frontend context
 └── PROJECT_CONTEXT.md             # ← you are here
@@ -109,7 +108,7 @@ charlie-ai-server/
 | Build (dev) | tsx (watch mode) | ^4.7 |
 | Build (prod) | tsc → dist/ | — |
 | Containerization | Docker (multi-stage) | — |
-| Hosting | AWS EC2 (Docker container) | — |
+| Hosting | Hetzner CX23 (Docker container) | — |
 | CI/CD | Manual deploy scripts | — |
 
 ---
@@ -355,7 +354,7 @@ This is the **single source of truth** for all project data. It is the first fil
 - Responds to: direct DMs, group mentions (`@Charlie_Bull_bot`), replies to Charlie's messages
 - `/woof` command triggers introduction message
 - Respects `TELEGRAM_ALLOWED_USER_IDS` and `TELEGRAM_ALLOWED_CHAT_IDS` allowlists
-- Uses keep-alive HTTPS agent to reduce socket churn on EC2
+- Uses keep-alive HTTPS agent to reduce socket churn on Hetzner
 
 ### `blueskyClient.ts` — Bluesky Integration
 - Uses AT Protocol (`@atproto/api`) with `AtpAgent`  
@@ -394,11 +393,11 @@ Memory is **in-process only** — a server restart clears all sessions. This is 
 ## 11. Deployment
 
 ### Infrastructure
-- **Platform:** AWS EC2 (Docker container)
-- **Port:** 8080 (exposed via EC2 Security Group)
+- **Platform:** Hetzner CX23 (Docker container)
+- **Port:** 8080 in-container, usually mapped to host port 80 or 8080
 - **Container:** Node.js 20 slim, multi-stage build
 - **Restart policy:** `--restart unless-stopped`
-- **Env injection:** `--env-file ~/charlie-ai.env` (file lives on EC2, never in the image)
+- **Env injection:** `--env-file ~/charlie-ai.env` (file lives on Hetzner, never in the image)
 
 ### Docker — Multi-Stage Build
 ```
@@ -412,16 +411,14 @@ Final image is lean — no TypeScript toolchain, no dev dependencies.
 ### Deploy Scripts
 | Script | Purpose |
 |--------|---------|
-| `deploy-to-aws.sh` | Build image locally, SCP to EC2, load, restart container |
-| `push-to-ecr.sh` | Tag and push image to AWS ECR |
-| `update-from-ecr.sh` | Pull latest ECR image on EC2 and restart |
+| `deploy-to-hetzner.sh` | Build image locally, SCP to Hetzner, load, restart container |
 | `scripts/run-with-env.sh` | Load `deploy.env` and run Docker locally for testing |
 
 ### Deploy Checklist
 1. Update `deploy.env` with any new env vars
 2. Run `npm run build` locally to verify TypeScript compiles
 3. Run deploy script of choice
-4. SSH into EC2 and verify: `curl http://localhost:8080/healthz`
+4. SSH into Hetzner and verify: `curl http://localhost:8080/healthz`
 5. Check `docker logs -f charlie-ai` for startup errors
 6. Verify social scheduler initialized: look for `social_media_scheduler_initialized` log line
 7. Test chat: `curl -X POST http://localhost:8080/v1/chat -H "Content-Type: application/json" -d '{"sessionId":"test","message":"Hello Charlie!"}'`
@@ -489,7 +486,7 @@ Gemini model names deprecate over time and return 404s. The current chain is `ge
 ### Social Post Failure & Retry Behaviour
 When Gemini fails (rate limit, network error, etc.) `generateWithGemini` returns `isError: true`. The scheduler detects this and **never posts the error string to social media**. Instead it retries up to 3 times with a 30-minute delay between attempts. If all 3 fail, the post slot is skipped and the scheduler waits for the next scheduled time. If you see 3 or more consecutive missing posts, check `docker logs charlie-ai` for the root cause.
 
-### Telegram Polling on EC2
+### Telegram Polling on Hetzner
 Only one polling process should run at a time. If `TELEGRAM_POLLING=true` and more than one container is running, Telegram updates will be split between instances. Use a single container deployment.
 
 ### Admin API Key
