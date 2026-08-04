@@ -4,6 +4,7 @@
  */
 
 import cron from 'node-cron';
+import type { ScheduledTask } from 'node-cron';
 import { logger } from '../lib/logger.js';
 import { config } from '../lib/config.js';
 import { socialMediaQueue } from './socialMediaQueue.js';
@@ -15,6 +16,16 @@ import { knowledgeBase } from './knowledgeBase.js';
 import { getMarketSnapshot, formatMarketContext } from './priceService.js';
 import { DEFAULT_SCHEDULE } from '../types/social.js';
 import type { Platform } from '../types/social.js';
+
+export const SOCIAL_SCHEDULER_TIMEZONE = 'UTC';
+
+export const SOCIAL_SCHEDULER_CRON_OPTIONS = {
+  timezone: SOCIAL_SCHEDULER_TIMEZONE,
+};
+
+export function getScheduledAfternoonSlotForDate(date: Date = new Date()): '17:00' | '21:00' {
+  return date.getUTCDate() % 2 === 1 ? '17:00' : '21:00';
+}
 
 // Topic categories for post variety — each maps to specific KB content
 const POST_TOPICS = [
@@ -50,8 +61,7 @@ const POST_TYPES = [
 type PostType = (typeof POST_TYPES)[number];
 
 export class SocialMediaScheduler {
-  private jobs: cron.ScheduledTask[] = [];
-  private currentAfternoonIndex = 0; // For alternating 5pm/9pm
+  private jobs: ScheduledTask[] = [];
 
   // Recent post memory — tracks last 14 topic+type combos to prevent repetition
   private recentPostLog: Array<{ topic: PostTopic; type: PostType; date: string }> = [];
@@ -101,7 +111,7 @@ export class SocialMediaScheduler {
     const job = cron.schedule('0 0 * * *', async () => {
       logger.info('Running midnight queue processing');
       await this.processQueueAtMidnight();
-    });
+    }, SOCIAL_SCHEDULER_CRON_OPTIONS);
 
     this.jobs.push(job);
     logger.info('Scheduled queue processing at midnight');
@@ -114,7 +124,7 @@ export class SocialMediaScheduler {
     const job = cron.schedule('0 8 * * *', async () => {
       logger.info('Running morning post');
       await this.createScheduledPost('morning');
-    });
+    }, SOCIAL_SCHEDULER_CRON_OPTIONS);
 
     this.jobs.push(job);
     logger.info('Scheduled morning post at 8:00 AM');
@@ -124,23 +134,33 @@ export class SocialMediaScheduler {
    * Schedule afternoon post (alternating 5 PM and 9 PM)
    */
   private scheduleAfternoonPost(): void {
+    const scheduledSlot = () => getScheduledAfternoonSlotForDate();
+
     // Schedule at 5 PM
     const job5pm = cron.schedule('0 17 * * *', async () => {
-      if (this.currentAfternoonIndex === 0) {
+      if (scheduledSlot() === '17:00') {
         logger.info('Running afternoon post at 5 PM');
         await this.createScheduledPost('afternoon');
-        this.currentAfternoonIndex = 1;
+      } else {
+        logger.info(
+          { scheduledSlot: scheduledSlot(), cronTime: '17:00' },
+          'Skipping 5 PM slot — today is reserved for the evening post'
+        );
       }
-    });
+    }, SOCIAL_SCHEDULER_CRON_OPTIONS);
 
     // Schedule at 9 PM
     const job9pm = cron.schedule('0 21 * * *', async () => {
-      if (this.currentAfternoonIndex === 1) {
+      if (scheduledSlot() === '21:00') {
         logger.info('Running evening post at 9 PM');
         await this.createScheduledPost('evening');
-        this.currentAfternoonIndex = 0;
+      } else {
+        logger.info(
+          { scheduledSlot: scheduledSlot(), cronTime: '21:00' },
+          'Skipping 9 PM slot — today is reserved for the afternoon post'
+        );
       }
-    });
+    }, SOCIAL_SCHEDULER_CRON_OPTIONS);
 
     this.jobs.push(job5pm, job9pm);
     logger.info('Scheduled afternoon/evening posts (alternating 5 PM and 9 PM)');
@@ -157,7 +177,7 @@ export class SocialMediaScheduler {
       logger.info('Checking for new Bluesky interactions');
       await this.checkBlueskyInteractions();
       await this.processInteractions('bluesky');
-    });
+    }, SOCIAL_SCHEDULER_CRON_OPTIONS);
 
     // X interaction checking is disabled on free tier.
     // Free tier cannot read mentions (userMentionTimeline requires Basic $100/mo).
@@ -180,7 +200,7 @@ export class SocialMediaScheduler {
     const job = cron.schedule('0 1 * * *', () => {
       logger.info('Running daily cleanup');
       socialMediaQueue.cleanup();
-    });
+    }, SOCIAL_SCHEDULER_CRON_OPTIONS);
 
     this.jobs.push(job);
     logger.info('Scheduled daily cleanup at 1:00 AM');
@@ -606,6 +626,9 @@ Output ONLY the post text (${maxChars} chars max). No quotes. No labels. No prea
    * Includes retry logic if response is too long
    */
   private async generatePostContent(timeOfDay: string, retryCount: number = 0): Promise<string | null> {
+    const topic = this.selectTopic();
+    const postType = this.selectPostType();
+
     try {
       const signature = '\n\n- Charlie AI 🐾🐶 #CharlieBull';
       // Content is posted to both Bluesky (300 graphemes) AND X (280 weighted chars).
@@ -613,10 +636,6 @@ Output ONLY the post text (${maxChars} chars max). No quotes. No labels. No prea
       // JS .length === Twitter weighted length for our characters, so budget directly.
       const X_CHAR_LIMIT = 280;
       const maxContentChars = X_CHAR_LIMIT - signature.length; // ~248 chars for content
-
-      // Select topic and post type (avoiding recent repeats)
-      const topic = this.selectTopic();
-      const postType = this.selectPostType();
 
       logger.info({ topic, postType, timeOfDay, retryCount }, 'Generating post with topic/type selection');
 
@@ -669,7 +688,7 @@ Output ONLY the post text (${maxChars} chars max). No quotes. No labels. No prea
 
       return responseText;
     } catch (error) {
-      logger.error({ error }, 'Error generating post content');
+      logger.error({ error, timeOfDay, retryCount, topic, postType }, 'Error generating post content');
       return null;
     }
   }
@@ -858,10 +877,11 @@ Generate ONLY the reply text (no signatures, no emojis):`;
    * Get scheduler status
    */
   getStatus() {
+    const scheduledSlot = getScheduledAfternoonSlotForDate();
     return {
       jobsRunning: this.jobs.length,
-      currentAfternoonIndex: this.currentAfternoonIndex,
-      nextAfternoonTime: this.currentAfternoonIndex === 0 ? '17:00' : '21:00',
+      currentAfternoonIndex: scheduledSlot === '17:00' ? 0 : 1,
+      nextAfternoonTime: scheduledSlot,
       queueStats: socialMediaQueue.getStats()
     };
   }

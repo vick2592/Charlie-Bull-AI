@@ -50,7 +50,7 @@ The server should log:
 
 #### 2. Check Status
 ```bash
-curl http://localhost:8080/social/status
+curl http://localhost:8080/api/social/status
 ```
 
 Expected response:
@@ -142,20 +142,17 @@ Watch for:
 
 ### Scheduled Posts Testing
 
-To test scheduled posts without waiting:
+To test scheduled posts without waiting, watch the live logs during a scheduled slot and check status in parallel:
 
-1. **Temporarily modify the schedule** in `src/services/socialMediaScheduler.ts`:
-   ```typescript
-   // Change from '0 8 * * *' to run every 2 minutes
-   const job = cron.schedule('*/2 * * * *', async () => {
-     logger.info('Running morning post');
-     await this.createScheduledPost('morning');
-   });
-   ```
+```bash
+docker logs -f charlie-ai 2>&1 | grep --line-buffered -Ei 'Running morning post|Running afternoon post|Running evening post|Generating post with topic/type selection|Posted scheduled content to X|Posted scheduled content to Bluesky|Post generation failed|Error creating scheduled post'
+```
 
-2. Restart the server and wait 2 minutes to see a post.
+```bash
+watch -n 30 'curl -s http://127.0.0.1/api/social/status'
+```
 
-3. **Revert the change** after testing.
+If you need to force a manual post during testing, use the admin test endpoints instead of editing cron expressions.
 
 ### Rate Limit Testing
 
@@ -220,7 +217,7 @@ curl http://localhost:8080/health
 
 ### View All Status
 ```bash
-curl http://localhost:8080/social/status | jq
+curl http://localhost:8080/api/social/status | jq
 ```
 
 ### Common Issues
