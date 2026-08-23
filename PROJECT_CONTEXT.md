@@ -1,378 +1,146 @@
-# Charlie Bull — Backend Project Context (charlie-ai-server)
+# Charlie Bull — Backend Context (charlie-ai-server)
 
-**Purpose of this file:** This document exists so that any AI assistant (Claude, Gemini, GPT, or future models) can be dropped into this codebase cold and immediately understand the full project, architecture, current state, and what to do next. Read this file first before touching anything.
+**Read this file first.** Last updated: July 9, 2026 (v8) · Server version: 0.1.6
 
-**Last updated:** July 9, 2026 (v7)
-**Server version:** 0.1.6  
-**Related repo:** official-charlie-bull (frontend — has its own PROJECT_CONTEXT.md)
+## 1. What This Is
 
----
+Cross-chain crypto project: **$CHAR** (ERC-20 on 9 EVM chains), **Charlie** (autonomous AI social agent), **$BULL** (Pump.fun/Solana companion token), **Charlie's Angels** (planned NFTs).
 
-## 1. Project Overview
+`charlie-ai-server` is the **Node.js backend**: REST chat API, Telegram bot, Bluesky bot (posts + auto-replies), X/Twitter bot (posts only), persona/knowledge base, session memory, rate limiting, input safety.
 
-Charlie Bull is a cross-chain cryptocurrency project combining:
-
-- **$CHAR** — an ERC-20 token deployed on 9 Ethereum-compatible blockchains
-- **Charlie** — an autonomous AI social agent that posts and engages across Bluesky, X/Twitter, Telegram, and the project website
-- **$BULL** — an educational companion token on Pump.fun (Solana) that bridges into the $CHAR ecosystem on graduation
-- **Charlie's Angels** — a planned NFT collection on Solana for $BULL graduates
-
-| Detail | Value |
-|--------|-------|
+| | |
+|---|---|
 | Website | https://charliebull.art |
-| Woof Paper (docs) | https://charliebull.art/docs |
-| Founder | Viktor Khachatryan — Full Stack Developer |
-| LinkedIn (Personal) | https://www.linkedin.com/in/viktor-khachatryan-78a6a064/ |
-| LinkedIn (Company) | https://www.linkedin.com/company/charlie-bull-inc/ |
+| Docs | https://charliebull.art/docs |
+| Founder | Viktor Khachatryan |
 
 ---
 
-## 2. What This Repo Does
+## 2. Structure
 
-`charlie-ai-server` is the **Node.js backend** powering everything behind the scenes:
+```
+src/
+├── index.ts                 # Entry: Fastify + scheduler + Telegram
+├── lib/config.ts            # Zod-validated env config
+├── lib/logger.ts            # Pino
+├── routes/                  # health, chat, social endpoints
+├── services/
+│   ├── persona.ts           # SYSTEM_PERSONA, buildPrompt(), buildPromptWithMarket(), ensureDogEmoji()
+│   ├── knowledgeBase.ts     # Single source of truth for project data
+│   ├── geminiClient.ts      # Gemini SDK + REST fallback, model chain
+│   ├── priceService.ts      # DexScreener + CoinGecko, 5-min cache, never throws
+│   ├── memoryStore.ts       # In-memory sessions (~10 turns)
+│   ├── rateLimiter.ts       # Sliding window (per-session + global)
+│   ├── safety.ts            # Input filter (banned patterns)
+│   ├── telegramBot.ts       # Long-polling bot
+│   ├── blueskyClient.ts     # AT Protocol (post + reply)
+│   ├── xClient.ts           # Twitter v2 (post only, Free tier)
+│   ├── socialMediaScheduler.ts  # cron orchestrator
+│   ├── socialMediaQueue.ts  # Outbound post queue
+│   └── responseFormatter.ts # Platform formatting (X / Bluesky / Telegram)
+└── types/                   # chat.ts, social.ts
+```
 
-- Serves a REST API that the Next.js frontend calls for chat (`POST /v1/chat`)
-- Runs the Telegram bot (long-polling)
-- Runs the Bluesky bot (automated posting + auto-replies to mentions)
-- Runs the X/Twitter bot (automated scheduled posts — replies pending API tier upgrade)
-- Contains all of Charlie's knowledge base, persona, and system prompt logic
-- Manages session memory, rate limiting, and input safety
+## 3. Tech Stack
+
+Node.js ≥20 · TypeScript ^5.4 · Fastify ^4.28 · Gemini ^0.21 · @atproto/api · twitter-api-v2 · node-cron · Zod · Pino · Docker multi-stage · Hetzner CX23
 
 ---
 
-## 3. Repository Structure
+## 4. API Endpoints
 
-```
-charlie-ai-server/
-├── src/
-│   ├── index.ts                   # Entry point — Fastify server, scheduler init, Telegram start
-│   ├── lib/
-│   │   ├── config.ts              # Zod-validated env config — all env vars parsed here
-│   │   └── logger.ts              # Pino logger instance
-│   ├── routes/
-│   │   ├── health.ts              # GET /healthz + GET /api/health
-│   │   ├── chat.ts                # POST /v1/chat — main AI chat endpoint
-│   │   └── social.ts              # GET|POST /api/social/* — status, test posts, interactions
-│   ├── services/
-│   │   ├── persona.ts             # SYSTEM_PERSONA prompt builder, buildPrompt(), buildPromptWithMarket() (async, injects live prices), ensureDogEmoji()
-│   │   ├── knowledgeBase.ts       # Single source of truth for all project data
-│   │   ├── geminiClient.ts        # Google Gemini AI client (SDK + REST fallback, model chain)
-│   │   ├── priceService.ts        # Live market data — DexScreener ($CHAR on-chain) + CoinGecko (9-chain native tokens + BTC). 5-min cache, never throws.
-│   │   ├── memoryStore.ts         # In-memory session conversation history (pruned to ~10 turns)
-│   │   ├── rateLimiter.ts         # Sliding window rate limiter (per-session + global)
-│   │   ├── safety.ts              # Input safety filter (banned patterns)
-│   │   ├── telegramBot.ts         # Telegram long-polling bot (DMs + group mentions + /woof)
-│   │   ├── blueskyClient.ts       # AT Protocol client — post + reply to mentions
-│   │   ├── xClient.ts             # Twitter API v2 client — post only (Free tier)
-│   │   ├── socialMediaScheduler.ts # cron-based orchestrator for posts + interaction checks
-│   │   ├── socialMediaQueue.ts    # Queue management for outbound social posts
-│   │   └── responseFormatter.ts  # Platform-specific response formatting (X vs Bluesky vs Telegram)
-│   └── types/
-│       ├── chat.ts                # ChatMessage type
-│       └── social.ts              # SocialPost, Platform, DEFAULT_SCHEDULE types
-├── scripts/
-│   └── run-with-env.sh            # Helper: loads deploy.env then runs docker
-├── Dockerfile                     # Multi-stage build (deps → build → prod-deps → prod)
-├── deploy.env.example             # Template for all env vars (copy → deploy.env, fill secrets)
-├── deploy.env                     # ⚠️ NEVER COMMIT — real secrets live here
-├── deploy-to-hetzner.sh           # Local → Hetzner deploy script (save image, SCP, SSH, run)
-├── package.json
-├── tsconfig.json
-├── cspell.json                    # Spell check config (VS Code CSpell extension)
-├── ARCHITECTURE.md                # System architecture diagram
-├── hetzner-deployment.md          # Step-by-step Hetzner deployment guide
-├── frontend-migration-prompt.md   # Standalone prompt for the frontend repo handoff
-├── SOCIAL_MEDIA_TESTING.md        # How to test Bluesky/X endpoints manually
-├── FRONTEND_PROMPT.md             # Prompt used to generate the frontend context
-└── PROJECT_CONTEXT.md             # ← you are here
-```
+| Method | Path | Notes |
+|--------|------|-------|
+| POST | `/v1/chat` | Main chat. Body: `{ sessionId, message, history[] }`. Flow: rate check → safety → merge memory → `buildPromptWithMarket()` → generate → `ensureDogEmoji` → persist |
+| GET | `/healthz` / `/api/health` | Returns `{ status: "ok" }` |
+| GET | `/api/social/status` | Scheduler status + queue depth |
+| POST | `/api/social/test/bluesky` | Admin: test Bluesky post |
+| POST | `/api/social/test/x` | Admin: test X post |
+| POST | `/api/social/check-interactions` | Admin: trigger interaction check |
+| POST | `/api/social/reply/x` | Admin: manual X reply (Free tier workaround) |
 
 ---
 
-## 4. Tech Stack
+## 5. Environment Variables
 
-| Layer | Technology | Version |
-|-------|-----------|---------|
-| Runtime | Node.js | ≥20 |
-| Language | TypeScript | ^5.4 |
-| Web Framework | Fastify | ^4.28 |
-| CORS | @fastify/cors | ^9.0 |
-| AI Model | Google Gemini (via `@google/generative-ai`) | ^0.21 |
-| Telegram Bot | Custom long-polling (node-fetch) | — |
-| Bluesky Bot | @atproto/api | ^0.18 |
-| X/Twitter Bot | twitter-api-v2 | ^1.28 |
-| Scheduling | node-cron | ^4.2 |
-| HTTP Client | node-fetch | ^3.3 |
-| Validation | Zod | ^3.23 |
-| Logging | Pino + pino-pretty | ^9.3 |
-| Build (dev) | tsx (watch mode) | ^4.7 |
-| Build (prod) | tsc → dist/ | — |
-| Containerization | Docker (multi-stage) | — |
-| Hosting | Hetzner CX23 (Docker container) | — |
-| CI/CD | Manual deploy scripts | — |
+Copy `deploy.env.example` → `deploy.env`. **Never commit `deploy.env`.**
+
+| Group | Key Variables | Notes |
+|-------|--------------|-------|
+| **AI** | `GEMINI_API_KEY` (required), `GEMINI_MODELS`, `MAX_TOKENS` | Model chain: `gemini-3.1-flash-lite,gemini-2.5-flash-lite`. `gemini-1.5-*` deprecated — do not use. |
+| **Server** | `PORT` (8080), `ALLOWED_ORIGINS`, `GLOBAL_RATE_LIMIT` (100), `SESSION_RATE_LIMIT` (8), `WINDOW_SECONDS` (60) | |
+| **Persona** | `CHARLIE_NAME`, `CHARLIE_CREATOR`, `CHARLIE_PERSONA_EXTRA`, `CHAR_TOKEN_ADDRESS`, `BULL_TOKEN_ADDRESS`, `TOKENOMICS_EXTRA` | |
+| **Telegram** | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_POLLING` (false), `TELEGRAM_ALLOWED_USER_IDS`, `TELEGRAM_ALLOWED_CHAT_IDS` | |
+| **Bluesky** | `BLUESKY_IDENTIFIER`, `BLUESKY_PASSWORD` (App Password, not main), `BLUESKY_SERVICE` | |
+| **X/Twitter** | `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_SECRET`, `X_BEARER_TOKEN` | Free tier = post only |
+| **Social toggles** | `SOCIAL_POSTS_ENABLED`, `SOCIAL_REPLIES_ENABLED`, `SOCIAL_DEV_MODE` | `SOCIAL_DEV_MODE`: verbose logging only. Errors never posted. Keep `false` in prod. |
+| **Security** | `ADMIN_API_KEY` | `openssl rand -hex 32` |
 
 ---
 
-## 5. API Endpoints
+## 6. Charlie AI Agent
 
-### Chat
-```
-POST /v1/chat
-```
-Main AI conversation endpoint. Called by the Next.js frontend proxy (`/api/chat`).
+Persona built in `persona.ts`, data from `knowledgeBase.ts`. Enthusiastic DeFi dog. Plain text only (no markdown). Never fabricates data. Refuses financial/illegal advice. `ensureDogEmoji()` strips markdown and ensures exactly one trailing dog emoji on every response.
 
-**Request body:**
-```json
-{
-  "sessionId": "string (1–128 chars)",
-  "message": "string (1–300 chars)",
-  "history": [
-    { "role": "user", "content": "string" },
-    { "role": "assistant", "content": "string" }
-  ]
-}
-```
-
-**Response:**
-```json
-{
-  "message": "Charlie's response text 🐕",
-  "meta": {
-    "truncation": false,
-    "latencyMs": 1234,
-    "modelUsed": "gemini-1.5-pro-latest"
-  }
-}
-```
-
-**Flow:** Rate check → safety filter → merge server memory + frontend history → `buildPromptWithMarket()` (fetches live $CHAR + chain token prices, injects into system prompt) → generate → ensure dog emoji → persist to memory → return.
-
-### Health
-```
-GET /healthz          ← legacy, used by frontend proxy
-GET /api/health       ← preferred
-```
-Returns `{ "status": "ok" }`.
-
-### Social (admin-protected endpoints require `Authorization: Bearer <ADMIN_API_KEY>`)
-```
-GET  /api/social/status              — Current scheduler status, queue depth
-POST /api/social/test/bluesky        — Trigger a test post to Bluesky (admin)
-POST /api/social/test/x              — Trigger a test post to X (admin)
-POST /api/social/check-interactions  — Manually trigger interaction check (admin)
-POST /api/social/reply/x             — Manual X reply (legacy, admin, free tier workaround)
-```
-
----
-
-## 6. Environment Variables
-
-Copy `deploy.env.example` to `deploy.env` and fill in secrets. **Never commit `deploy.env`.**
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `8080` | Server port |
-| `GEMINI_API_KEY` | — | **Required** for real AI responses (Google AI Studio) |
-| `GEMINI_API_VERSION` | `v1` | API version (`v1` = GA) |
-| `GEMINI_MODEL` | `gemini-3.1-flash-lite` | Primary model (GA since May 7, 2026 — was `-preview`, deprecated May 25, 2026) |
-| `GEMINI_MODELS` | `gemini-3.1-flash-lite,gemini-2.5-flash-lite` | Model fallback chain (comma-separated). `gemini-1.5-*` are deprecated — do not use. |
-| `ALLOWED_ORIGINS` | `http://localhost:3000` | CORS origins (comma-separated) |
-| `GLOBAL_RATE_LIMIT` | `100` | Max requests per window (all sessions) |
-| `SESSION_RATE_LIMIT` | `8` | Max requests per window per sessionId |
-| `WINDOW_SECONDS` | `60` | Rate limit window in seconds |
-| `MAX_TOKENS` | `1024` | Max Gemini output tokens |
-| `CHARLIE_NAME` | `Charlie` | AI persona name |
-| `CHARLIE_CREATOR` | `Charlie Bull` | Creator name injected into persona |
-| `CHARLIE_PERSONA_EXTRA` | `""` | Additional persona instructions (appended to system prompt) |
-| `CHAR_TOKEN_ADDRESS` | `0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1` | $CHAR contract address |
-| `BULL_TOKEN_ADDRESS` | `""` | $BULL Pump.fun address (set when live) |
-| `TOKENOMICS_EXTRA` | `""` | Additional tokenomics notes for the system prompt |
-| `TELEGRAM_BOT_TOKEN` | `""` | From BotFather |
-| `TELEGRAM_ALLOWED_USER_IDS` | `""` | Comma-separated numeric user IDs (empty = allow all) |
-| `TELEGRAM_ALLOWED_CHAT_IDS` | `""` | Comma-separated chat IDs (empty = allow all) |
-| `TELEGRAM_POLLING` | `false` | Set `true` to enable polling on startup |
-| `BLUESKY_IDENTIFIER` | `""` | e.g. `charliebull.art` |
-| `BLUESKY_PASSWORD` | `""` | Bluesky App Password (not main account password) |
-| `BLUESKY_SERVICE` | `https://bsky.social` | AT Protocol PDS URL |
-| `X_API_KEY` | `""` | Twitter API v2 consumer key |
-| `X_API_SECRET` | `""` | Twitter API v2 consumer secret |
-| `X_ACCESS_TOKEN` | `""` | Twitter OAuth access token |
-| `X_ACCESS_SECRET` | `""` | Twitter OAuth access secret |
-| `X_BEARER_TOKEN` | `""` | Twitter bearer token (read-only operations) |
-| `SOCIAL_POSTS_ENABLED` | `false` | Enable automated Bluesky + X scheduled posts |
-| `SOCIAL_REPLIES_ENABLED` | `false` | Enable automated Bluesky reply-to-mentions |
-| `SOCIAL_DEV_MODE` | `false` | Verbose logging on post/reply failures. Error messages are **never** posted to social regardless of this value. Keep `false` in production. |
-| `ADMIN_API_KEY` | `""` | Secures write social endpoints. Generate with `openssl rand -hex 32` |
-
----
-
-## 7. Charlie AI Agent
-
-Charlie is an autonomous AI persona built on Google Gemini. His full identity and knowledge are injected via a system prompt built in `src/services/persona.ts` using data from `src/services/knowledgeBase.ts`.
-
-### Persona Rules (enforced in system prompt)
-- Enthusiastic, friendly DeFi dog assistant
-- Concise answers — short paragraphs or bullet points
-- Plain text only — no markdown bold (`**text**`), italic, headers, or bullet dashes. Numbers and prices written inline without special formatting.
-- Never fabricates protocols, token addresses, partnerships, audits, APRs, or yields
-- Encourages DYOR, self-custody, scam vigilance
-- Refuses investment advice, tax advice, illegal activity
-- Redirects unrelated chit-chat back to crypto/DeFi
-- `ensureDogEmoji(message)` — strips markdown bold/italic (`**text**`, `__text__`) then ensures exactly one trailing dog emoji. Called on every response across all platforms.
-
-### Response Formatting by Platform
-| Platform | Rules |
-|----------|-------|
-| X/Twitter | No direct URLs — use conversational references ("check our docs", "LinkTree in bio") |
-| Bluesky | Links OK, keep under 300 chars |
-| Telegram | Full markdown formatting allowed |
-| Website chat | Detailed, comprehensive answers |
+**Platform formatting:** X = no URLs (conversational refs only), Bluesky = links OK ≤300 chars, Telegram = full markdown, Website = detailed.
 
 ### Social Posting System
 
-**Schedule (cron, UTC):**
-| Job | Schedule | Description |
-|-----|----------|-------------|
-| Morning post | `0 8 * * *` | 8:00 AM — both Bluesky + X |
-| Afternoon/evening post | `0 17 * * *` / `0 21 * * *` | Alternates between 5:00 PM and 9:00 PM |
-| Interaction check | Every 30 minutes | Checks Bluesky mentions + replies |
-| Queue processing | `0 0 * * *` | Midnight queue flush |
-| Cleanup | `0 1 * * *` | 1:00 AM cleanup |
+**Schedule (UTC):** Morning `0 8 * * *` · Afternoon/evening `0 17 * * *` / `0 21 * * *` (alternates) · Interaction check every 30 min · Queue flush midnight · Cleanup 1AM.
 
-**14 Topic Categories:**
-`chain_spotlight`, `tokenomics_fact`, `roadmap_tge`, `roadmap_bull`, `roadmap_nft`, `bridge_tech`, `same_contract`, `why_base_l2`, `community_airdrop`, `defi_education`, `market_perspective`, `fun_personality`, `chain_comparison`, `bull_burn_event`
+**14 topics** × **7 post types** with 14-post rotation memory to prevent repetition.
 
-**7 Post Structure Types:**
-`educational_fact`, `opinion`, `story`, `announcement`, `fun`, `question`, `comparison`
+**Two-tier character budget (X):** `targetChars = 220` (told to Gemini) / `maxContentChars = 249` (hard ceiling = 280 − 31 char signature). Truncation is last-resort only — fires if Gemini overshoots target by 29+ chars.
 
-**14-post memory:** The scheduler tracks the last 14 topic+type combinations to prevent repetition.
+**`stripSocialSignature()`:** Called before formatter on all post/reply output. Removes trailing dog emojis (surrogate-pair safe with `u` flag), other trailing pictographic emoji, empty lines, model sign-off lines, and `#CharlieBull` lines. Prevents double-signature with the official `- Charlie AI 🐾🐶 #CharlieBull` footer.
 
-**`stripSocialSignature()` (double-signature fix, v0.1.4):** Gemini sometimes appends its own hashtag/emoji footer or sign-off lines despite prompt instructions, and `generateWithGemini` always adds a trailing dog emoji via `ensureDogEmoji()`. Without cleanup, the platform formatter would then append the official `- Charlie AI 🐾🐶 #CharlieBull` signature on top — resulting in a double signature. `stripSocialSignature()` is called on Gemini's raw output in both `generatePostContent` and `generateReplyContent` before the formatter runs. It removes: trailing `🐕`/`🐶` emojis (with `u` flag for correct surrogate-pair handling — v0.1.5 fix), any other trailing pictographic emoji via `\p{Extended_Pictographic}`, empty trailing lines, model-generated `- Charlie…` sign-off lines, and any line containing `#CharlieBull`.
-
-**Pre-TGE accuracy (v0.1.5):** $CHAR is pre-TGE — the contract address exists on all 9 chains but there are NO active DEX liquidity pools. The token is not yet purchasable or tradeable. TGE launches Q3 2026 on Base via Aerodrome. This is enforced in: `knowledgeBase.ts` (keyFeatures + tokenomics.notes), `persona.ts` (PRE-TGE STATUS block at top of knowledge section, Pre-TGE Compliance line in SYSTEM_PERSONA), and `socialMediaScheduler.ts` (chain_spotlight, same_contract, why_base_l2, chain_comparison topic prompts updated; HARD RULE added; generateReplyContent About section updated).
+**Pre-TGE rule:** $CHAR is NOT tradeable yet. No DEX pools. TGE = Q3 2026 on Base via Aerodrome. Enforced across `knowledgeBase.ts`, `persona.ts`, and `socialMediaScheduler.ts` topic prompts.
 
 ### Platform Status
-| Platform | Handle | Status | Notes |
-|----------|--------|--------|-------|
-| Bluesky | @charliebull.art | ✅ Full auto-replies active | 2× daily posts + real-time reply to mentions |
-| X/Twitter | @CharlieBullArt | 🔄 Posts only | 2× daily scheduled posts. Auto-replies require X API Basic tier (not yet upgraded — **do not document as active**) |
-| Telegram | @Charlie_Bull_bot | ✅ Active | Responds to DMs, group mentions, and `/woof` command |
-| Website | charliebull.art | ✅ Active | Full chat via ChatWidget → `/v1/chat` |
+| Platform | Handle | Status |
+|----------|--------|--------|
+| Bluesky | @charliebull.art | ✅ Posts + auto-replies |
+| X/Twitter | @CharlieBullArt | 🔄 Posts only (replies need Basic tier — **do not document as active**) |
+| Telegram | @Charlie_Bull_bot | ✅ DMs + group mentions + `/woof` |
+| Website | charliebull.art | ✅ Full chat |
 
 ---
 
-## 8. Knowledge Base (`src/services/knowledgeBase.ts`)
+## 7. Knowledge Base (`knowledgeBase.ts`)
 
-This is the **single source of truth** for all project data. It is the first file to update when project details change. It feeds the system prompt automatically.
+**Single source of truth.** First file to update when project data changes. Feeds the system prompt automatically.
 
-### $CHAR Token
-| Property | Value |
-|----------|-------|
-| Name | Charlie Bull |
-| Ticker | $CHAR |
-| Standard | ERC-20 |
-| Total Supply | 420,690,000,000 (420.69 Billion) |
-| Contract Address | `0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1` |
-| Contract Consistency | Same address across all 9 chains |
+**$CHAR:** ERC-20 · 420.69B supply · `0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1` (same on all 9 chains)
+- Distribution: 50% Liquidity (locked) · 35% Community · 15% Team
+- Chains: Base ⭐ (Aerodrome), Ethereum (Uniswap), Arbitrum (Uniswap), Polygon (QuickSwap), Avalanche (LFGJ), BSC (PancakeSwap), Mantle (Fusion X), Linea (Linea DEX), Blast (Blast DEX)
+- Bridges: Axelar, Squid Router, Base↔Solana
 
-**Token Distribution:**
-| Allocation | % | Tokens | Purpose |
-|------------|---|--------|---------|
-| Liquidity | 50% | 210,345,000,000 | DEX Liquidity Pools (locked) |
-| Community | 35% | 147,241,500,000 | Community Airdrop & rewards |
-| Team & Dev | 15% | 63,103,500,000 | IP and Project Expansion |
-
-**9-Chain Deployment:**
-| Chain | DEX |
-|-------|-----|
-| Base ⭐ | Aerodrome (launch pool) |
-| Ethereum | Uniswap |
-| Arbitrum | Uniswap |
-| Polygon | QuickSwap |
-| Avalanche | LFGJ |
-| Binance Smart Chain | PancakeSwap |
-| Mantle | Fusion X |
-| Linea | Linea DEX |
-| Blast | Blast DEX |
-
-**Bridge Technology:** Axelar Network, Squid Router, Base ↔ Solana Bridge
-
-### $BULL Token
-| Property | Value |
-|----------|-------|
-| Name | $BULL |
-| Platform | Pump.fun (Solana) |
-| Supply | 1,000,000,000 (1 Billion) |
-| Launch Timeline | Q3 2026 (after $CHAR TGE) |
-
-**Graduation mechanics:**
-- Pre-graduation: $BULL used for educational streams, 1B $CHAR tokens locked
-- On graduation: 1B $CHAR is **permanently burned** (deflationary event)
-- Post-graduation: CHAR/BULL swap pair launches on Raydium, $BULL holders get exclusive access to Charlie's Angels NFT collection on Solana
+**$BULL:** Pump.fun/Solana · 1B supply · Launch Q3 2026 post-TGE
+- Graduation: 1B $CHAR permanently burned → CHAR/BULL pair on Raydium + Charlie's Angels NFT access
 
 ---
 
-## 9. Core Service Details
+## 8. Core Services
 
-### `geminiClient.ts` — AI Generation
-- Uses `@google/generative-ai` SDK with REST fallback
-- Tries models in the `GEMINI_MODELS` chain order until one succeeds
-- Model normalization: maps any deprecated `gemini-1.5-*` / `gemini-2.0-flash` names to the current `gemini-2.5-*` equivalents so old env values degrade gracefully
-- Falls back to mock response if `GEMINI_API_KEY` is not set (safe for dev)
-- Always applies `ensureDogEmoji()` to output — this is correct for chat/Telegram responses but is stripped by `stripSocialSignature()` in the scheduler before post formatting (see below)
-- Returns `{ text, isError: true }` on all failure paths (rate limit, network, auth) — callers must check `isError` before using the text. The scheduler uses this to skip posting rather than publish an error string.
+**`geminiClient.ts`:** SDK + REST fallback. Tries `GEMINI_MODELS` chain in order. Normalizes deprecated model names to current equivalents. Returns `{ text, isError: true }` on failure — **callers must check `isError`**. Always applies `ensureDogEmoji()` (stripped by `stripSocialSignature()` for social posts).
 
-### `priceService.ts` — Live Market Data
-- **CoinCap v2 (primary):** Fetches native/governance token prices for all 9 chains + BTC. Free, no API key, 200 req/min rate limit. More reliable than CoinGecko free tier which can return stale data silently.
-- **CoinGecko (fallback):** Used if CoinCap returns fewer than 70% of expected tokens.
-- **DexScreener:** Fetches $CHAR on-chain price for every DEX pair by contract address. Takes the highest-liquidity pair per chain. Returns `[]` pre-TGE (no pairs = no post about price yet).
-- **5-minute cache:** Both data sources are cached together. A single `getMarketSnapshot()` call returns cached data if < 5 min old.
-- **Graceful failure:** Never throws. All fetch errors are caught and logged; the caller receives empty arrays and continues normally.
-- **8-second timeout** on all outbound fetches via `AbortSignal.timeout(8000)`.
-- **Key exports:** `getMarketSnapshot()`, `formatMarketContext(snapshot)` (for prompt injection), `formatCharPriceResponse(snapshot)` (for user-facing responses).
-- **CoinGecko IDs:** POL uses `polygon-ecosystem-token` (NOT `matic-network` — that was the deprecated MATIC ID which returns stale/zero price data post-rebranding). BLAST uses `blast`. MNT uses `mantle`.
-- **Zero-price filter:** Tokens with `current_price == null` or `<= 0` are filtered out before injection so Charlie never reports `$0.00` for a live token.
+**`priceService.ts`:** DexScreener ($CHAR on-chain, highest-liquidity pair per chain, `[]` pre-TGE) + CoinGecko (sole source for chain tokens: BTC, ETH, BNB, AVAX, POL, ARB, MNT, BLAST, SOL). 5-min cache, parallel fetch, 8s timeout, **never throws**. Key exports: `getMarketSnapshot()`, `formatMarketContext()`, `formatCharPriceResponse()`. CoinGecko ID gotchas: POL=`polygon-ecosystem-token`, BLAST=`blast`, MNT=`mantle`. Zero-price filter excludes null/≤0 prices.
 
-### `memoryStore.ts` — Session Memory
-- In-memory `Map<sessionId, messages[]>` — **does not persist across server restarts**
-- Kept to ~10 user+assistant turn pairs (`MAX_TURNS = 10`)
-- Hard char budget: 5,000 chars (`MAX_CHAR_BUDGET`) — older messages dropped if exceeded
-- Server memory + frontend-provided history are merged on each request (server takes precedence)
+**`memoryStore.ts`:** In-memory only (cleared on restart). ~10 turns, 5000 char budget. Server memory takes precedence over frontend-supplied history.
 
-### `rateLimiter.ts` — Rate Limiting
-- Sliding window algorithm
-- Limits: 8 requests/session/60s + 100 requests/all sessions/60s (configurable via env)
-- Returns `retryAfter` seconds on 429
+**`rateLimiter.ts`:** Sliding window. 8/session/60s + 100/global/60s (configurable). Returns `retryAfter` on 429.
 
-### `safety.ts` — Input Safety
-- Regex-based filter for banned patterns: `illegal`, `scam`, `pump and dump`, `hack`, `exploit`
-- Returns a friendly refusal, does not reveal the filter rules
+**`safety.ts`:** Regex filter for banned patterns. Returns friendly refusal.
 
-### `telegramBot.ts` — Telegram Integration
-- Pure long-polling (no webhook) — enabled by `TELEGRAM_POLLING=true`
-- Calls its own `/v1/chat` endpoint internally (`http://127.0.0.1:<PORT>/v1/chat`)
-- Responds to: direct DMs, group mentions (`@Charlie_Bull_bot`), replies to Charlie's messages
-- `/woof` command triggers introduction message
-- Respects `TELEGRAM_ALLOWED_USER_IDS` and `TELEGRAM_ALLOWED_CHAT_IDS` allowlists
-- Uses keep-alive HTTPS agent to reduce socket churn on Hetzner
+**`telegramBot.ts`:** Long-polling (no webhook). Calls its own `/v1/chat` internally. Responds to DMs, group mentions, `/woof`. Keep-alive HTTPS agent.
 
-### `blueskyClient.ts` — Bluesky Integration
-- Uses AT Protocol (`@atproto/api`) with `AtpAgent`  
-- Authenticates with App Password (not main account password)
-- Detects facets (links, mentions) via `RichText.detectFacets()` before posting
-- Auto-replies poll for new mentions/replies every 30 minutes via the scheduler
-- `handleApiError()` resets `authenticated = false` on `ExpiredToken` / 401 / 403 so the next call automatically re-authenticates (previously stayed `true` forever after token expiry)
+**`blueskyClient.ts`:** AT Protocol `AtpAgent`. App Password auth. `RichText.detectFacets()` before posting. `handleApiError()` resets auth on 401/403/ExpiredToken for auto re-auth.
 
-### `xClient.ts` — X/Twitter Integration
-- Uses `twitter-api-v2` with OAuth 1.0a (User Auth)
-- Currently only posts (Free tier) — auto-replies require Basic tier upgrade
-- Do NOT implement auto-replies until the X API tier is upgraded and documented
-- `handleApiError()` resets `authenticated = false` and `client = null` on 401/403 for automatic re-auth; handles 429 (rate limit) separately without clearing auth
-- Character limit is **280 weighted chars** (not 300) — budget enforced in both `responseFormatter.ts` and `socialMediaScheduler.ts`
+**`xClient.ts`:** OAuth 1.0a. **Post only** (Free tier) — do NOT implement auto-replies until Basic tier. `handleApiError()` resets auth on 401/403. **280 weighted char limit** (not 300).
 
 ---
 
-## 10. Session Memory Architecture
+## 9. Session Memory Architecture
 
 ```
 Frontend (Next.js)
@@ -390,7 +158,7 @@ Memory is **in-process only** — a server restart clears all sessions. This is 
 
 ---
 
-## 11. Deployment
+## 10. Deployment
 
 ### Infrastructure
 - **Platform:** Hetzner CX23 (Docker container)
@@ -425,7 +193,7 @@ Final image is lean — no TypeScript toolchain, no dev dependencies.
 
 ---
 
-## 12. Roadmap
+## 11. Roadmap
 
 | Quarter | Milestone | Status |
 |---------|-----------|--------|
@@ -441,7 +209,7 @@ Final image is lean — no TypeScript toolchain, no dev dependencies.
 
 ---
 
-## 13. Development Workflow
+## 12. Development Workflow
 
 ### Local Dev
 ```bash
@@ -472,7 +240,7 @@ Feature work on separate branches (e.g. `node-js-upgrade`, `social-media-improve
 
 ---
 
-## 14. Known Issues & Important Notes
+## 13. Known Issues & Important Notes
 
 ### X/Twitter Auto-Replies — NOT ACTIVE
 Auto-replies on X require the **X API Basic tier**. Do not implement, document as active, or enable `SOCIAL_REPLIES_ENABLED` for X until the account is upgraded. Bluesky auto-replies are fully active and unaffected.
@@ -481,7 +249,7 @@ Auto-replies on X require the **X API Basic tier**. Do not implement, document a
 `InMemoryStore` clears on every server restart. If persistent memory across restarts becomes a requirement, replace with Redis or a database. For current scale this is acceptable.
 
 ### Gemini Model Deprecation
-Gemini model names deprecate over time and return 404s. The current chain is `gemini-2.5-pro,gemini-2.5-flash,gemini-2.5-flash-lite` (stable GA, not deprecated as of April 2026). `gemini-1.5-*` are fully deprecated — do not use. The normalizer in `geminiClient.ts` maps any legacy names to their 2.5 equivalents as a safety net. Watch for `gemini_configured_models_missing_from_list` warnings in logs and update `GEMINI_MODELS` in `deploy.env` when a new deprecation is announced.
+Gemini model names deprecate over time and return 404s. The current chain is `gemini-3.1-flash-lite,gemini-2.5-flash-lite`. `gemini-1.5-*` and `gemini-2.0-flash` are fully deprecated — do not use. The normalizer in `geminiClient.ts` maps legacy names to current equivalents as a safety net. Watch for `gemini_configured_models_missing_from_list` warnings in logs and update `GEMINI_MODELS` in `deploy.env` when a new deprecation is announced.
 
 ### Social Post Failure & Retry Behaviour
 When Gemini fails (rate limit, network error, etc.) `generateWithGemini` returns `isError: true`. The scheduler detects this and **never posts the error string to social media**. Instead it retries up to 3 times with a 30-minute delay between attempts. If all 3 fail, the post slot is skipped and the scheduler waits for the next scheduled time. If you see 3 or more consecutive missing posts, check `docker logs charlie-ai` for the root cause.
@@ -497,7 +265,7 @@ Use a Bluesky **App Password** (generated at bsky.app/settings/app-passwords), n
 
 ---
 
-## 15. Social Links
+## 14. Social Links
 
 | Platform | Link / Handle |
 |----------|--------------|
@@ -517,7 +285,7 @@ Use a Bluesky **App Password** (generated at bsky.app/settings/app-passwords), n
 
 ---
 
-## 16. Related Repository
+## 15. Related Repository
 
 The `official-charlie-bull` repository contains:
 - Next.js 16 frontend

@@ -78,34 +78,6 @@ const COINGECKO_SYMBOL: Record<string, string> = {
   solana: 'SOL',
 };
 
-// ─── CoinCap v2 — primary alternative to CoinGecko ───────────────────────────
-// CoinCap v2 is free, no API key, 200 req/min. Used as primary source because
-// CoinGecko free tier can return stale or rate-limited data silently.
-
-const COINCAP_IDS = [
-  'bitcoin',
-  'ethereum',
-  'binance-coin',   // BNB
-  'avalanche',      // AVAX
-  'polygon',        // POL (was MATIC)
-  'arbitrum',       // ARB
-  'mantle',         // MNT
-  'blast',          // BLAST
-  'solana',         // SOL
-];
-
-const COINCAP_SYMBOL_MAP: Record<string, string> = {
-  bitcoin: 'BTC',
-  ethereum: 'ETH',
-  'binance-coin': 'BNB',
-  avalanche: 'AVAX',
-  polygon: 'POL',
-  arbitrum: 'ARB',
-  mantle: 'MNT',
-  blast: 'BLAST',
-  solana: 'SOL',
-};
-
 // ─── Cache ────────────────────────────────────────────────────────────────────
 
 let cache: MarketSnapshot | null = null;
@@ -206,12 +178,12 @@ async function fetchTopTokensCoinGecko(): Promise<TopTokenPrice[]> {
 
     return json
       .filter((coin) => coin.current_price != null && coin.current_price > 0) // skip stale/null data
-      .map((coin, idx) => ({
+      .map((coin) => ({
         symbol: COINGECKO_SYMBOL[coin.id] ?? coin.symbol.toUpperCase(),
         name: coin.name,
         priceUsd: formatUsd(coin.current_price),
         priceChange24h: formatChange(coin.price_change_percentage_24h ?? 0),
-        marketCapRank: idx + 1,
+        marketCapRank: coin.market_cap_rank ?? 0,
       }));
   } catch (err: any) {
     logger.warn({ err: err?.message }, 'CoinGecko fetch failed — skipping top tokens');
@@ -219,59 +191,9 @@ async function fetchTopTokensCoinGecko(): Promise<TopTokenPrice[]> {
   }
 }
 
-// ─── CoinCap v2 — primary chain native token prices ──────────────────────────
-
-async function fetchTopTokensCoinCap(): Promise<TopTokenPrice[]> {
-  try {
-    const ids = COINCAP_IDS.join(',');
-    const url = `https://api.coincap.io/v2/assets?ids=${ids}`;
-    const res = await fetch(url, {
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent': 'CharlieBull-AI-Agent/1.0',
-      },
-      signal: AbortSignal.timeout(8000),
-    });
-
-    if (!res.ok) {
-      logger.warn({ status: res.status }, 'CoinCap returned non-200');
-      return [];
-    }
-
-    const json: any = await res.json();
-    const data: any[] = json?.data ?? [];
-
-    return data
-      .filter((asset) => asset.priceUsd != null && parseFloat(asset.priceUsd) > 0)
-      .map((asset, idx) => ({
-        symbol: COINCAP_SYMBOL_MAP[asset.id] ?? asset.symbol?.toUpperCase() ?? asset.id,
-        name: asset.name,
-        priceUsd: formatUsd(parseFloat(asset.priceUsd)),
-        priceChange24h: formatChange(parseFloat(asset.changePercent24Hr ?? '0')),
-        marketCapRank: idx + 1,
-      }));
-  } catch (err: any) {
-    logger.warn({ err: err?.message }, 'CoinCap fetch failed — skipping top tokens');
-    return [];
-  }
-}
-
-// ─── fetchTopTokens — CoinCap primary, CoinGecko fallback ────────────────────
+// ─── fetchTopTokens — CoinGecko (sole source) ────────────────────────────────
 
 async function fetchTopTokens(): Promise<TopTokenPrice[]> {
-  // Try CoinCap first — more reliable free tier, explicit rate limit (200 req/min)
-  const coinCapResult = await fetchTopTokensCoinCap();
-  if (coinCapResult.length >= Math.floor(COINCAP_IDS.length * 0.7)) {
-    // Got at least 70% of expected tokens — good enough
-    logger.info({ source: 'coincap', count: coinCapResult.length }, 'Top tokens fetched from CoinCap');
-    return coinCapResult;
-  }
-
-  // Fall back to CoinGecko
-  logger.warn(
-    { coincapCount: coinCapResult.length, expected: COINCAP_IDS.length },
-    'CoinCap returned too few tokens — falling back to CoinGecko'
-  );
   return fetchTopTokensCoinGecko();
 }
 
@@ -348,3 +270,4 @@ export function formatCharPriceResponse(snapshot: MarketSnapshot): string {
   }
   return lines.join('\n');
 }
+

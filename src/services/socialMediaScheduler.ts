@@ -66,6 +66,9 @@ export class SocialMediaScheduler {
   // Recent post memory — tracks last 14 topic+type combos to prevent repetition
   private recentPostLog: Array<{ topic: PostTopic; type: PostType; date: string }> = [];
 
+  // Tracks the last reason post generation failed (for observability in retry logs)
+  private lastFailureReason: string | null = null;
+
   /**
    * Initialize all scheduled jobs
    */
@@ -277,7 +280,7 @@ export class SocialMediaScheduler {
           const nextAttempt = retryAttempt + 1;
           const delayMinutes = this.POST_RETRY_DELAY_MS / 60_000;
           logger.warn(
-            { timeOfDay, retryAttempt: nextAttempt, maxRetries: this.POST_MAX_RETRIES, delayMinutes },
+            { timeOfDay, retryAttempt: nextAttempt, maxRetries: this.POST_MAX_RETRIES, delayMinutes, reason: this.lastFailureReason },
             `Post generation failed — scheduling retry ${nextAttempt}/${this.POST_MAX_RETRIES} in ${delayMinutes} minutes`
           );
           if (config.socialDevMode) {
@@ -291,7 +294,7 @@ export class SocialMediaScheduler {
         } else {
           // All retries exhausted — skip this slot entirely.
           logger.error(
-            { timeOfDay, attemptsUsed: this.POST_MAX_RETRIES },
+            { timeOfDay, attemptsUsed: this.POST_MAX_RETRIES, reason: this.lastFailureReason },
             `All ${this.POST_MAX_RETRIES} post attempts failed for ${timeOfDay} slot — skipping. Will try again at next scheduled time (morning/afternoon/evening).`
           );
         }
@@ -635,19 +638,21 @@ Output ONLY the post text (${maxChars} chars max). No quotes. No labels. No prea
       // X is more restrictive — use X's limit so the same content fits both platforms.
       // JS .length === Twitter weighted length for our characters, so budget directly.
       const X_CHAR_LIMIT = 280;
-      const maxContentChars = X_CHAR_LIMIT - signature.length; // ~248 chars for content
+      const maxContentChars = X_CHAR_LIMIT - signature.length; // ~249 chars — hard ceiling
+      const targetChars = 220; // Lower target given to Gemini (buffer prevents truncation)
 
       logger.info({ topic, postType, timeOfDay, retryCount }, 'Generating post with topic/type selection');
 
       const retryInstruction = retryCount > 0
-        ? `\n\nCRITICAL: Your previous response was TOO LONG. This MUST be ${maxContentChars} characters or fewer. Cut ruthlessly.`
+        ? `\n\nCRITICAL: Your previous response was TOO LONG. This MUST be ${targetChars} characters or fewer. Cut ruthlessly.`
         : '';
 
       // Fetch live market data to inject into the post prompt
       const marketSnapshot = await getMarketSnapshot();
       const marketContext = formatMarketContext(marketSnapshot);
 
-      const prompt = this.buildTopicPrompt(topic, postType, timeOfDay, maxContentChars, marketContext) + retryInstruction;
+      // Give Gemini the lower target; validate against the hard ceiling
+      const prompt = this.buildTopicPrompt(topic, postType, timeOfDay, targetChars, marketContext) + retryInstruction;
 
       const response = await generateWithGemini([
         { role: 'user', content: prompt }
@@ -657,6 +662,7 @@ Output ONLY the post text (${maxChars} chars max). No quotes. No labels. No prea
       // with isError=true. We must NEVER post that error message to social media.
       // Return null here so the scheduler skips the post slot entirely.
       if (response.isError) {
+        this.lastFailureReason = `Gemini error: ${response.text.substring(0, 100)}`;
         logger.warn(
           { timeOfDay, topic, postType, retryCount, errorText: response.text },
           'Gemini returned an error response — skipping post to avoid publishing error message to social media'
@@ -678,7 +684,19 @@ Output ONLY the post text (${maxChars} chars max). No quotes. No labels. No prea
         if (retryCount < 2) {
           return this.generatePostContent(timeOfDay, retryCount + 1);
         }
-        logger.warn({ timeOfDay }, 'Max retries reached, will truncate post');
+        // Actually truncate at word boundary to fit within limit
+        const truncated = responseText.substring(0, maxContentChars);
+        const lastSpace = truncated.lastIndexOf(' ');
+        const finalText = lastSpace > 0 ? truncated.substring(0, lastSpace) : truncated;
+        logger.warn(
+          { timeOfDay, originalLength: responseText.length, truncatedLength: finalText.length },
+          'Post truncated to fit character limit'
+        );
+        this.lastFailureReason = `Post too long (${responseText.length} > ${maxContentChars}), truncated`;
+        if (retryCount === 0) {
+          this.logPost(topic, postType);
+        }
+        return finalText;
       }
 
       // Only log topic/type to recent history on first attempt (not retries)
@@ -687,7 +705,8 @@ Output ONLY the post text (${maxChars} chars max). No quotes. No labels. No prea
       }
 
       return responseText;
-    } catch (error) {
+    } catch (error: any) {
+      this.lastFailureReason = `Exception: ${error?.message || String(error)}`;
       logger.error({ error, timeOfDay, retryCount, topic, postType }, 'Error generating post content');
       return null;
     }
