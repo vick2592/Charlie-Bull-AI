@@ -68,6 +68,30 @@ function buildGeminiContents(messages: ChatMessage[]): {
   return { systemContent: systemMsg?.content, contents };
 }
 
+/**
+ * Per-attempt timeout for a single Gemini model call (SDK or REST).
+ * If the API hangs (TCP open, no response), we abort after this many ms
+ * instead of stalling the scheduler indefinitely.
+ * 60s is generous — normal Gemini responses arrive in 2-8s.
+ */
+const GEMINI_CALL_TIMEOUT_MS = 60_000;
+
+/**
+ * Wraps a promise with a timeout. Rejects with a descriptive Error if the
+ * promise doesn't settle within `ms` milliseconds.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`Gemini call timed out after ${ms / 1000}s (${label})`));
+    }, ms);
+    promise.then(
+      (val) => { clearTimeout(timer); resolve(val); },
+      (err) => { clearTimeout(timer); reject(err); }
+    );
+  });
+}
+
 export async function generateWithGemini(messages: ChatMessage[]): Promise<{ text: string; modelUsed?: string; isError?: boolean }> {
   const userMessages = messages.filter(m => m.role === 'user');
   const lastUser = userMessages.slice(-1)[0];
@@ -118,7 +142,7 @@ export async function generateWithGemini(messages: ChatMessage[]): Promise<{ tex
           modelConfig.systemInstruction = { parts: [{ text: systemContent }] };
         }
         const model = genAI.getGenerativeModel(modelConfig);
-        const result = await model.generateContent({ contents });
+        const result = await withTimeout<any>(model.generateContent({ contents }), GEMINI_CALL_TIMEOUT_MS, `SDK:${modelName}`);
         const text = result.response.text();
         if (text) return { text: ensureDogEmoji(text), modelUsed: modelName };
         throw new Error('Empty response text');
@@ -135,11 +159,19 @@ export async function generateWithGemini(messages: ChatMessage[]): Promise<{ tex
       if (systemContent) {
         body.systemInstruction = { parts: [{ text: systemContent }] };
       }
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
+      const controller = new AbortController();
+      const fetchTimer = setTimeout(() => controller.abort(), GEMINI_CALL_TIMEOUT_MS);
+      let res: any;
+      try {
+        res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+          signal: controller.signal
+        });
+      } finally {
+        clearTimeout(fetchTimer);
+      }
       if (!res.ok) {
         const errTxt = await res.text();
         lastFailure = { source: 'rest', modelName, status: res.status, apiVersion, errTxt: errTxt.slice(0, 500) };
