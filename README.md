@@ -13,7 +13,7 @@ Fastify + TypeScript microservice exposing `POST /v1/chat` backed by Google Gemi
 - ✅ Rate limiting (session + global)
 - ✅ Safety filter
 - ✅ Persona prompt with full knowledge base integration
-- ✅ Gemini client with fallback model chain
+- ✅ Gemini client with fallback model chain + 60s timeout (prevents indefinite hangs)
 - ✅ `/v1/chat` route with platform-specific responses
 - ✅ Telegram bot integration (polling)
 - ✅ Social media automation — Bluesky (posts + replies) and X/Twitter (posts only)

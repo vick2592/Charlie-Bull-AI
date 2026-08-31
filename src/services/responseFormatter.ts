@@ -55,23 +55,45 @@ function twitterWeightedLength(text: string): number {
 }
 
 /**
+ * Neutralizes URL patterns that trigger X's automated spam filter and link penalties.
+ * Removes all TLDs (.fun, .art, .io) so X parses them strictly as plain text.
+ */
+function neutralizeLinksForX(text: string): string {
+  // 1. Extract visible text from any markdown links first: [My Text](https://...) -> My Text
+  let sanitized = text.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
+
+  // 2. Target specific project and crypto domains (with or without https:// or www.)
+  //    and convert them to safe, conversational plain English.
+  sanitized = sanitized
+    .replace(/(?:https?:\/\/)?(?:www\.)?charliebull\.art\/docs[^\s]*/gi, 'our docs')
+    .replace(/(?:https?:\/\/)?(?:www\.)?charliebull\.art[^\s]*/gi, 'our website')
+    .replace(/(?:https?:\/\/)?(?:www\.)?linktr\.ee[^\s]*/gi, 'LinkTree (in bio)')
+    .replace(/(?:https?:\/\/)?(?:www\.)?medium\.com[^\s]*/gi, 'our Medium blog')
+    .replace(/(?:https?:\/\/)?(?:www\.)?(?:x|twitter)\.com[^\s]*/gi, '@CharlieBullArt')
+    .replace(/(?:https?:\/\/)?(?:www\.)?bsky\.app[^\s]*/gi, 'Bluesky')
+    .replace(/(?:https?:\/\/)?(?:www\.)?t\.me[^\s]*/gi, 'our Telegram')
+    .replace(/(?:https?:\/\/)?(?:www\.)?pump\.fun[^\s]*/gi, 'Pump fun')
+    .replace(/(?:https?:\/\/)?(?:www\.)?raydium\.io[^\s]*/gi, 'Raydium')
+    .replace(/(?:https?:\/\/)?(?:www\.)?aerodrome\.finance[^\s]*/gi, 'Aerodrome')
+    .replace(/(?:https?:\/\/)?(?:www\.)?github\.com[^\s]*/gi, 'our GitHub')
+    .replace(/(?:https?:\/\/)?(?:www\.)?tiktok\.com[^\s]*/gi, 'our TikTok')
+    .replace(/(?:https?:\/\/)?(?:www\.)?linkedin\.com[^\s]*/gi, 'our LinkedIn');
+
+  // 3. Destroy any remaining generic http/https links completely
+  sanitized = sanitized.replace(/https?:\/\/\S+/gi, '');
+
+  // 4. Clean up any accidental double spaces left behind by deleted URLs
+  return sanitized.replace(/\s{2,}/g, ' ').trim();
+}
+
+/**
  * Format response for X/Twitter (minimal links, conversational)
  * X hard limit: 280 weighted characters (emoji count as 2 via surrogate pairs).
  */
 export function formatForX(content: string, includeLinks: boolean = false): FormattedResponse {
-  let text = content;
+  let text = neutralizeLinksForX(content);
 
-  // Replace full URLs with handle mentions or conversational references
-  text = text.replace(/https?:\/\/[^\s]+/g, (url) => {
-    if (url.includes('charliebull.art/docs')) return 'our docs';
-    if (url.includes('charliebull.art')) return 'charliebull.art';
-    if (url.includes('linktr.ee')) return 'LinkTree (in bio)';
-    if (url.includes('medium.com')) return 'our Medium blog';
-    if (url.includes('x.com') || url.includes('twitter.com')) return '@CharlieBullArt';
-    if (url.includes('bsky.app')) return 'Bluesky';
-    if (url.includes('t.me')) return 'our Telegram';
-    return 'our website'; // Generic fallback
-  });
+  
 
   // X hard limit is 280 weighted chars. Signature has 2 emoji (surrogate pairs = 2 JS chars each).
   // JS .length == Twitter weighted length, so we can budget directly.

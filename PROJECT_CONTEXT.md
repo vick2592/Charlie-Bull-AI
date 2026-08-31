@@ -122,7 +122,7 @@ Persona built in `persona.ts`, data from `knowledgeBase.ts`. Enthusiastic DeFi d
 
 ## 8. Core Services
 
-**`geminiClient.ts`:** SDK + REST fallback. Tries `GEMINI_MODELS` chain in order. Normalizes deprecated model names to current equivalents. Returns `{ text, isError: true }` on failure — **callers must check `isError`**. Always applies `ensureDogEmoji()` (stripped by `stripSocialSignature()` for social posts).
+**`geminiClient.ts`:** SDK + REST fallback. Tries `GEMINI_MODELS` chain in order. Normalizes deprecated model names to current equivalents. **60s timeout on both SDK and REST call paths** — prevents indefinite hangs if the API accepts the TCP connection but never responds (timeout rejects → caught → next model in chain or `isError: true` fallback). Returns `{ text, isError: true }` on failure — **callers must check `isError`**. Always applies `ensureDogEmoji()` (stripped by `stripSocialSignature()` for social posts).
 
 **`priceService.ts`:** DexScreener ($CHAR on-chain, highest-liquidity pair per chain, `[]` pre-TGE) + CoinGecko (sole source for chain tokens: BTC, ETH, BNB, AVAX, POL, ARB, MNT, BLAST, SOL). 5-min cache, parallel fetch, 8s timeout, **never throws**. Key exports: `getMarketSnapshot()`, `formatMarketContext()`, `formatCharPriceResponse()`. CoinGecko ID gotchas: POL=`polygon-ecosystem-token`, BLAST=`blast`, MNT=`mantle`. Zero-price filter excludes null/≤0 prices.
 
