@@ -97,9 +97,35 @@ export async function socialRoutes(fastify: FastifyInstance) {
   });
 
   /**
+   * Dry-run: test X formatting pipeline without posting.
+   * Useful for debugging pump.fun / regex issues without hitting the X API.
+   */
+  fastify.post('/social/test/format-x', async (request, reply) => {
+    if (!requireAdminKey(request, reply)) return;
+    try {
+      const { content } = request.body as { content?: string };
+      if (!content) {
+        return reply.status(400).send({ error: 'Content is required' });
+      }
+
+      const formatted = formatForX(content);
+      return {
+        success: true,
+        original: content,
+        formatted: formatted.text,
+        characterCount: formatted.characterCount,
+        withinLimit: formatted.characterCount <= 280,
+      };
+    } catch (error) {
+      logger.error({ error }, 'Error in format-x dry run');
+      return reply.status(500).send({ error: 'Failed to format content' });
+    }
+  });
+
+  /**
    * Test X post (development only)
    */
-  fastify.post('/social/test/x', async (request, reply) => {
+fastify.post('/social/test/x', async (request, reply) => {
     if (!requireAdminKey(request, reply)) return;
     try {
       const { content } = request.body as { content?: string };
@@ -112,10 +138,12 @@ export async function socialRoutes(fastify: FastifyInstance) {
         return reply.status(400).send({ error: 'X/Twitter not configured' });
       }
 
-      const post = await xClient.createPost(content);
+      // � FIX: Pass it through the formatter first!
+      const formatted = formatForX(content);
+      const post = await xClient.createPost(formatted.text);
       
       if (post) {
-        return { success: true, post };
+        return { success: true, post, sentText: formatted.text };
       } else {
         return reply.status(500).send({ error: 'Failed to create post' });
       }

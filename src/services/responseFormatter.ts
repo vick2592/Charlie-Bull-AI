@@ -4,6 +4,7 @@
  */
 
 import { knowledgeBase, getSocialLink, getAllSocialHandles } from './knowledgeBase.js';
+import { logger } from '../lib/logger.js';
 
 export type Platform = 'x' | 'bluesky' | 'telegram' | 'website';
 
@@ -65,22 +66,23 @@ function neutralizeLinksForX(text: string): string {
   // 2. Target specific project and crypto domains (with or without https:// or www.)
   //    and convert them to safe, conversational plain English.
   sanitized = sanitized
-    .replace(/(?:https?:\/\/)?(?:www\.)?charliebull\.art\/docs[^\s]*/gi, 'our docs')
-    .replace(/(?:https?:\/\/)?(?:www\.)?charliebull\.art[^\s]*/gi, 'our website')
-    .replace(/(?:https?:\/\/)?(?:www\.)?linktr\.ee[^\s]*/gi, 'LinkTree (in bio)')
-    .replace(/(?:https?:\/\/)?(?:www\.)?medium\.com[^\s]*/gi, 'our Medium blog')
-    .replace(/(?:https?:\/\/)?(?:www\.)?(?:x|twitter)\.com[^\s]*/gi, '@CharlieBullArt')
-    .replace(/(?:https?:\/\/)?(?:www\.)?bsky\.app[^\s]*/gi, 'Bluesky')
-    .replace(/(?:https?:\/\/)?(?:www\.)?t\.me[^\s]*/gi, 'our Telegram')
-    .replace(/(?:https?:\/\/)?(?:www\.)?pump\.fun[^\s]*/gi, 'Pump fun')
-    .replace(/(?:https?:\/\/)?(?:www\.)?raydium\.io[^\s]*/gi, 'Raydium')
-    .replace(/(?:https?:\/\/)?(?:www\.)?aerodrome\.finance[^\s]*/gi, 'Aerodrome')
-    .replace(/(?:https?:\/\/)?(?:www\.)?github\.com[^\s]*/gi, 'our GitHub')
-    .replace(/(?:https?:\/\/)?(?:www\.)?tiktok\.com[^\s]*/gi, 'our TikTok')
-    .replace(/(?:https?:\/\/)?(?:www\.)?linkedin\.com[^\s]*/gi, 'our LinkedIn');
+    .replace(/(?:https?:\/\/)?(?:www\.)?charliebull\.art\/docs(?:\/[^\s.,;:!?]+)?/gi, 'our docs')
+    .replace(/(?:https?:\/\/)?(?:www\.)?charliebull\.art(?:\/[^\s.,;:!?]+)?/gi, 'our website')
+    .replace(/(?:https?:\/\/)?(?:www\.)?linktr\.ee(?:\/[^\s.,;:!?]+)?/gi, 'LinkTree (in bio)')
+    .replace(/(?:https?:\/\/)?(?:www\.)?medium\.com(?:\/[^\s.,;:!?]+)?/gi, 'our Medium blog')
+    .replace(/(?:https?:\/\/)?(?:www\.)?(?:x|twitter)\.com(?:\/[^\s.,;:!?]+)?/gi, '@CharlieBullArt')
+    .replace(/(?:https?:\/\/)?(?:www\.)?bsky\.app(?:\/[^\s.,;:!?]+)?/gi, 'Bluesky')
+    .replace(/(?:https?:\/\/)?(?:www\.)?t\.me(?:\/[^\s.,;:!?]+)?/gi, 'our Telegram')
+    .replace(/(?:https?:\/\/)?(?:www\.)?pump\.fun(?:\/[^\s.,;:!?]+)?/gi, 'Pump fun')
+    .replace(/(?:https?:\/\/)?(?:www\.)?raydium\.io(?:\/[^\s.,;:!?]+)?/gi, 'Raydium')
+    .replace(/(?:https?:\/\/)?(?:www\.)?aerodrome\.finance(?:\/[^\s.,;:!?]+)?/gi, 'Aerodrome')
+    .replace(/(?:https?:\/\/)?(?:www\.)?github\.com(?:\/[^\s.,;:!?]+)?/gi, 'our GitHub')
+    .replace(/(?:https?:\/\/)?(?:www\.)?tiktok\.com(?:\/[^\s.,;:!?]+)?/gi, 'our TikTok')
+    .replace(/(?:https?:\/\/)?(?:www\.)?linkedin\.com(?:\/[^\s.,;:!?]+)?/gi, 'our LinkedIn');
 
   // 3. Destroy any remaining generic http/https links completely
-  sanitized = sanitized.replace(/https?:\/\/\S+/gi, '');
+  //    Stop before sentence punctuation to avoid eating trailing periods/commas
+  sanitized = sanitized.replace(/https?:\/\/[^\s.,;:!?]+/gi, '');
 
   // 4. Clean up any accidental double spaces left behind by deleted URLs
   return sanitized.replace(/\s{2,}/g, ' ').trim();
@@ -90,23 +92,26 @@ function neutralizeLinksForX(text: string): string {
  * Format response for X/Twitter (minimal links, conversational)
  * X hard limit: 280 weighted characters (emoji count as 2 via surrogate pairs).
  */
-export function formatForX(content: string, includeLinks: boolean = false): FormattedResponse {
+export function formatForX(content: string, _includeLinks: boolean = false): FormattedResponse {
+  // 1. Log the raw AI input
+  logger.info({ original: content }, 'Raw AI content before X formatting');
+
   let text = neutralizeLinksForX(content);
-
   
+  // 2. Log the output of link neutralization
+  logger.info({ neutralized: text }, 'Content after X link/regex neutralization');
 
-  // X hard limit is 280 weighted chars. Signature has 2 emoji (surrogate pairs = 2 JS chars each).
-  // JS .length == Twitter weighted length, so we can budget directly.
   const signature = '\n\n- Charlie AI 🐾🐶 #CharlieBull';
-  const X_CHAR_LIMIT = 280;
-  const maxContentLength = X_CHAR_LIMIT - twitterWeightedLength(signature); // ~248 chars for content
+  const maxContentLength = 280 - twitterWeightedLength(signature);
 
-  // Smart truncation to fit within 280 weighted chars
   text = smartTruncate(text, maxContentLength) + signature;
+  
+  // 3. Log the final payload
+  logger.info({ finalPayload: text }, 'Final payload ready for X API');
 
   return {
     text,
-    includesLinks: false, // X posts shouldn't have clickable links
+    includesLinks: false,
     characterCount: twitterWeightedLength(text),
   };
 }
