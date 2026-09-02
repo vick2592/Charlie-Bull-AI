@@ -56,6 +56,27 @@ function twitterWeightedLength(text: string): number {
 }
 
 /**
+ * Ensures at most one cashtag ($SYMBOL) exists in the post.
+ * If multiple exist, keeps the first (or prioritizes $CHAR) and strips $ from the rest.
+ */
+function limitCashtagsForX(text: string): string {
+  let cashtagCount = 0;
+  
+  // If $CHAR is present, prioritize keeping $CHAR and strip $ from others
+  const hasChar = /\$CHAR\b/i.test(text);
+
+  return text.replace(/\$([a-zA-Z0-9_]+)/g, (match, symbol) => {
+    if (hasChar) {
+      if (symbol.toUpperCase() === 'CHAR') return match;
+      return symbol; // Strip $ from secondary tickers like $BULL -> BULL
+    }
+
+    cashtagCount++;
+    return cashtagCount === 1 ? match : symbol; // Keep only first cashtag
+  });
+}
+
+/**
  * Neutralizes URL patterns that trigger X's automated spam filter and link penalties.
  * Removes all TLDs (.fun, .art, .io) so X parses them strictly as plain text.
  */
@@ -80,9 +101,10 @@ function neutralizeLinksForX(text: string): string {
     .replace(/(?:https?:\/\/)?(?:www\.)?tiktok\.com(?:\/[^\s.,;:!?]+)?/gi, 'our TikTok')
     .replace(/(?:https?:\/\/)?(?:www\.)?linkedin\.com(?:\/[^\s.,;:!?]+)?/gi, 'our LinkedIn');
 
-  // 3. Destroy any remaining generic http/https links completely
+  // 3. Destroy any remaining generic http/https links completely and Limit Cashtags
   //    Stop before sentence punctuation to avoid eating trailing periods/commas
   sanitized = sanitized.replace(/https?:\/\/[^\s.,;:!?]+/gi, '');
+  sanitized = limitCashtagsForX(sanitized);
 
   // 4. Clean up any accidental double spaces left behind by deleted URLs
   return sanitized.replace(/\s{2,}/g, ' ').trim();
