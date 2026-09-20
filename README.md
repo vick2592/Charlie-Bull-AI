@@ -126,7 +126,7 @@ Charlie's posts rotate across **14 distinct topics** to prevent repetition:
 |-------|---------|
 | `chain_spotlight` | Feature one specific chain + DEX (rotates across all 9) |
 | `tokenomics_fact` | Real $CHAR numbers: 420.69B supply, allocations, contract |
-| `roadmap_tge` | $CHAR TGE on Base/Aerodrome — Q3 2026 |
+| `roadmap_tge` | $CHAR TGE on Base/Aerodrome — Q4 2026 |
 | `roadmap_bull` | $BULL on Pump.fun, graduation mechanics |
 | `bull_burn_event` | $BULL graduation triggers permanent 1B $CHAR burn |
 | `roadmap_nft` | NFT collection on Solana for $BULL graduates |

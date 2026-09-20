@@ -94,7 +94,7 @@ Persona built in `persona.ts`, data from `knowledgeBase.ts`. Enthusiastic DeFi d
 
 **`stripSocialSignature()`:** Called before formatter on all post/reply output. Removes trailing dog emojis (surrogate-pair safe with `u` flag), other trailing pictographic emoji, empty lines, model sign-off lines, and `#CharlieBull` lines. Prevents double-signature with the official `- Charlie AI 🐾🐶 #CharlieBull` footer.
 
-**Pre-TGE rule:** $CHAR is NOT tradeable yet. No DEX pools. TGE = Q3 2026 on Base via Aerodrome. Enforced across `knowledgeBase.ts`, `persona.ts`, and `socialMediaScheduler.ts` topic prompts.
+**Pre-TGE rule:** $CHAR is NOT tradeable yet. No DEX pools. TGE = Q4 2026 on Base via Aerodrome. Enforced across `knowledgeBase.ts`, `persona.ts`, and `socialMediaScheduler.ts` topic prompts.
 
 ### Platform Status
 | Platform | Handle | Status |
@@ -115,7 +115,7 @@ Persona built in `persona.ts`, data from `knowledgeBase.ts`. Enthusiastic DeFi d
 - Chains: Base ⭐ (Aerodrome), Ethereum (Uniswap), Arbitrum (Uniswap), Polygon (QuickSwap), Avalanche (LFGJ), BSC (PancakeSwap), Mantle (Fusion X), Linea (Linea DEX), Blast (Blast DEX)
 - Bridges: Axelar, Squid Router, Base↔Solana
 
-**$BULL:** Pump.fun/Solana · 1B supply · Launch Q3 2026 post-TGE
+**$BULL:** Pump.fun/Solana · 1B supply · Launch Q1 2027 post-TGE
 - Graduation: 1B $CHAR permanently burned → CHAR/BULL pair on Raydium + Charlie's Angels NFT access
 
 ---
@@ -197,15 +197,17 @@ Final image is lean — no TypeScript toolchain, no dev dependencies.
 
 | Quarter | Milestone | Status |
 |---------|-----------|--------|
-| Q4 2025 | Charlie AI launched — Telegram, Bluesky, X/Twitter, website chat. Bluesky auto-replies active. | ✅ Complete |
-| Q1 2026 | AI growth & analysis. Server upgrades. 14-topic/7-structure post system. Gemini 2.5 migration. Live market data (DexScreener + CoinGecko) injected into all AI prompts. X Free tier stabilization. | ✅ Complete |
-| Q2 2026 | Submit token listing forms on CoinGecko and Etherscan prior to $CHAR TGE. | 🔄 Current |
-| Q3 2026 | $CHAR TGE on Base via Aerodrome. Cross-chain expansion to all 9 chains via Axelar Network + Squid Router + Base↔Solana Bridge. | ⏳ Upcoming |
-| Q3–Q4 2026 | $BULL launch on Pump.fun (Solana). Upon graduation: 1B $CHAR permanently burned (from Ethereum liquidity — hardcoded, not manual). CHAR/BULL swap pair on Raydium. Weekly Pump.fun podcasts begin. | ⏳ Upcoming |
-| Q4 2026 | $BULL companion token launch. Charlie's Angels NFT collection on Solana for $BULL graduates. | ⏳ Upcoming |
-| Q1 2027 | Base ↔ Solana bridge live. Raydium CHAR/BULL pair active. | ⏳ Upcoming |
-| Q2 2027 | Charlie's Angels NFT launch on Solana. IP partnerships, merchandise, multimedia. | ⏳ Upcoming |
-| Q3 2027+ | DeFi utilities, governance, strategic partnerships, Web3 ecosystem expansion. | ⏳ Future |
+| Q4 2025 | AI Integration — Charlie AI launched on Telegram, Bluesky, X/Twitter, website chat. Bluesky auto-replies active. | ✅ Complete |
+| Q1 2026 | AI Growth & Analysis — Server upgrades, 14-topic/7-structure post system, live market data (DexScreener + CoinGecko). X Free tier stabilization. | ✅ Complete |
+| Q2 2026 | AI Growth & Analysis Stage 2 — Advanced analytics and growth systems. | ✅ Complete |
+| Q3 2026 | Charlie VPS Integration & Social Growth Analysis. | ✅ Complete |
+| Q4 2026 | CoinGecko & Etherscan Approval. | ⏳ Upcoming |
+| Q4 2026 | $CHAR Token Generation Event (TGE) on Base via Aerodrome. | ⏳ Upcoming |
+| Q4 2026 – Q1 2027 | Cross-Chain Expansion via Axelar Network + Squid Router + Base↔Solana Bridge. | ⏳ Upcoming |
+| Q1 2027 | $BULL Launch & 1B $CHAR Burn — 1B tokens on Pump.fun (Solana). Upon graduation: 1B $CHAR permanently burned (from Ethereum liquidity — hardcoded, not manual). Weekly Pump.fun podcasts begin. | ⏳ Upcoming |
+| Q2 2027 | Base ↔ Solana Bridge & Raydium CHAR/BULL Pair active. | ⏳ Upcoming |
+| Q3 2027 | Charlie's Angels NFT Launch & IP Development on Solana. | ⏳ Upcoming |
+| Q4 2027 & Beyond | Ecosystem Expansion — DeFi utilities, governance, strategic partnerships, Web3 ecosystem. | ⏳ Future |
 
 ---
 

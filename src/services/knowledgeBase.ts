@@ -114,7 +114,7 @@ export const knowledgeBase: KnowledgeBase = {
     },
     notes: [
       'PRE-TGE: $CHAR is NOT yet available for purchase or trading. The contract address exists on all 9 chains but there are ZERO active DEX liquidity pools. TGE launches Q4 2026 on Base via Aerodrome. After TGE, liquidity is bridged to other chains by the community.',
-      '$BULL educational token (1B supply) launching Q4 2026 on Pump.fun (Solana)',
+      '$BULL educational token (1B supply) launching Q1 2027 on Pump.fun (Solana)',
       'Pre-graduation: $BULL powers educational streams + weekly podcasts on Pump.fun. 1B $CHAR tokens are locked.',
       'Post-graduation: 1B $CHAR permanently burned from Ethereum locked liquidity (deflationary, hardcoded — not a manual team action)',
       'Post-graduation: LP locked, CHAR/BULL swap pair launches on Raydium, $BULL holders get exclusive early access to Charlie\u2019s Angels NFT collection',

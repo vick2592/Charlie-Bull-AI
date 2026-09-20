@@ -261,7 +261,7 @@ export function formatMarketContext(snapshot: MarketSnapshot): string {
  */
 export function formatCharPriceResponse(snapshot: MarketSnapshot): string {
   if (snapshot.charPrices.length === 0) {
-    return '$CHAR is currently in pre-TGE phase — trading data will be available on DexScreener once the liquidity pool goes live on Base via Aerodrome in Q3 2026.';
+    return '$CHAR is currently in pre-TGE phase — trading data will be available on DexScreener once the liquidity pool goes live on Base via Aerodrome in Q4 2026.';
   }
 
   const lines = ['Here are the current $CHAR prices across chains:'];

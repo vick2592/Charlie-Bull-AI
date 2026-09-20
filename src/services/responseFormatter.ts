@@ -312,18 +312,20 @@ LinkTree: ${getSocialLink('linktree')} 🐂`);
   ) {
     if (platform === 'x') {
       return formatForX(
-        "We're in the AI growth phase (Q1 2026)! Token launch planned for Q2 2026 pending Base-Solana bridge. NFT collection coming Q4 2026. Full roadmap on our docs! 🐂"
+        "We're in Q3 2026 — AI + social growth complete! TGE hits Q4 2026 on Base via Aerodrome. $BULL launches Q1 2027. Full roadmap on our docs! 🐂"
       );
     }
     if (platform === 'bluesky') {
       return formatForBluesky(`Charlie Bull Roadmap:
 
-✅ Q4 2025: AI Integration (Live now!)
-🔄 Q1 2026: AI Growth & Analysis
-🚀 Q2 2026: Token Launch ($CHAR on Base L2)
-🌉 Q2-Q3 2026: Cross-Chain Expansion
-🎓 Q3 2026: $BULL Educational Token
-🖼️ Q4 2026: NFT Collection & IP Development
+✅ Q4 2025: AI Integration (Completed)
+✅ Q1 2026: AI Growth & Analysis (Completed)
+✅ Q2 2026: AI Growth Stage 2 (Completed)
+✅ Q3 2026: VPS + Social Growth (Completed)
+🚀 Q4 2026: TGE — $CHAR on Base via Aerodrome
+🌉 Q4 2026–Q1 2027: Cross-Chain Expansion
+🎓 Q1 2027: $BULL Launch & 1B $CHAR Burn
+🖼️ Q3 2027: Charlie's Angels NFT Launch
 
 Details: ${getSocialLink('docs')} 🐂`);
     }
@@ -331,15 +333,19 @@ Details: ${getSocialLink('docs')} 🐂`);
 
 ✅ Q4 2025 - AI Integration: Interactive Charlie AI on Telegram, Bluesky, and X (COMPLETED)
 
-🔄 Q1 2026 - AI Growth & Analysis: Focus on community engagement and system upgrades
+✅ Q1 2026 - AI Growth & Analysis: Community engagement and system upgrades (COMPLETED)
 
-🚀 Q2 2026 - Token Generation Event: Launch $CHAR on Base L2 (pending Base-Solana bridge)
+✅ Q2 2026 - AI Growth & Analysis Stage 2: Advanced analytics and growth systems (COMPLETED)
 
-🌉 Q2-Q3 2026 - Cross-Chain Expansion: Bridge to Arbitrum, Ethereum, Avalanche, and more
+✅ Q3 2026 - Charlie VPS Integration & Social Growth Analysis (COMPLETED)
 
-🎓 Q3 2026 - $BULL Educational Token: 1B tokens on Pump.fun with exclusive holder benefits
+🚀 Q4 2026 - Token Generation Event: $CHAR launches on Base via Aerodrome
 
-🖼️ Q4 2026 - NFT Launch & IP Development: Charlie's Angels NFT collection on Solana
+🌉 Q4 2026–Q1 2027 - Cross-Chain Expansion: Bridge to Arbitrum, Ethereum, Avalanche, and more
+
+🎓 Q1 2027 - $BULL Launch & 1B $CHAR Burn: 1B tokens on Pump.fun, 1B $CHAR burned
+
+🖼️ Q3 2027 - Charlie's Angels NFT Launch & IP Development: NFT collection on Solana
 
 Full whitepaper: ${getSocialLink('docs')}`);
   }
