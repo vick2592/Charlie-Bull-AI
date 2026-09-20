@@ -81,12 +81,12 @@ export const knowledgeBase: KnowledgeBase = {
     keyFeatures: [
       'Contract address registered on 9 major blockchain networks — PRE-TGE: no active DEX liquidity pools yet',
       'Same contract address (0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1) across all 9 chains — simplifies bridging and verification post-TGE',
-      'Planned TGE launch pool on Base via Aerodrome (Q3 2026) — token NOT yet available for purchase',
+      'Planned TGE launch pool on Base via Aerodrome (Q4 2026) — token NOT yet available for purchase',
       'Multi-DEX roadmap post-TGE: Uniswap, PancakeSwap, QuickSwap, LFGJ, Fusion X — liquidity added chain by chain after TGE',
       'AI-powered educational assistant (Charlie) on Telegram, Bluesky, X, and website',
       'Community-first tokenomics: 35% for airdrops and rewards',
       'Cross-chain bridging planned via Axelar Network and Squid Router — active post-TGE',
-      'Base ↔ Solana bridge unlocks CHAR/BULL swap pair on Raydium (Q1 2027)',
+      'Base ↔ Solana bridge unlocks CHAR/BULL swap pair on Raydium (Q2 2027)',
       'Educational $BULL token (1B supply) on Pump.fun — graduation burns 1B $CHAR permanently',
     ],
   },
@@ -113,7 +113,7 @@ export const knowledgeBase: KnowledgeBase = {
       },
     },
     notes: [
-      'PRE-TGE: $CHAR is NOT yet available for purchase or trading. The contract address exists on all 9 chains but there are ZERO active DEX liquidity pools. TGE launches Q3 2026 on Base via Aerodrome. After TGE, liquidity is bridged to other chains by the community.',
+      'PRE-TGE: $CHAR is NOT yet available for purchase or trading. The contract address exists on all 9 chains but there are ZERO active DEX liquidity pools. TGE launches Q4 2026 on Base via Aerodrome. After TGE, liquidity is bridged to other chains by the community.',
       '$BULL educational token (1B supply) launching Q4 2026 on Pump.fun (Solana)',
       'Pre-graduation: $BULL powers educational streams + weekly podcasts on Pump.fun. 1B $CHAR tokens are locked.',
       'Post-graduation: 1B $CHAR permanently burned from Ethereum locked liquidity (deflationary, hardcoded — not a manual team action)',
@@ -146,55 +146,69 @@ export const knowledgeBase: KnowledgeBase = {
     },
     {
       quarter: 'Q1 2026',
-      title: 'AI Growth & Analysis',
+      title: 'AI Growth & Analysis Stage 1',
       description:
         'Server infrastructure upgrades, 14-topic rotation system, 7 post-structure types, AWS EC2 production deployment. X/Twitter free tier stabilization. Social growth analysis.',
       completed: true,
     },
     {
       quarter: 'Q2 2026',
+      title: 'AI Growth & Analysis Stage 2',
+      description:
+        'Integrate Gemini 3.1 model for improved AI responses. Integrated custom AI responses for each social media platform.',
+      completed: true,
+    },
+    {
+      quarter: 'Q3 2026',
+      title: 'Charlie VPS Integration & Social Growth Analysis',
+      description:
+        'Integrate Charlie VPS with the existing social media infrastructure and analyze social growth metrics between platforms.',
+      completed: true,
+    },
+    {
+      quarter: 'Q4 2026',
       title: 'CoinGecko & Etherscan Approval',
       description:
         'Submit token update forms on CoinGecko and Etherscan prior to $CHAR TGE. TGE proceeds once both approvals are confirmed.',
       completed: false,
     },
     {
-      quarter: 'Q3 2026',
+      quarter: 'Q4 2026',
       title: '$CHAR Token Generation Event (TGE)',
       description:
         'Official $CHAR TGE on Base network via Aerodrome DEX — launch pool goes live. Cross-chain expansion begins via Axelar Network and Squid Router, starting with Ethereum and Arbitrum.',
       completed: false,
     },
     {
-      quarter: 'Q3–Q4 2026',
+      quarter: 'Q4 2026 – Q1 2027',
       title: 'Cross-Chain Expansion',
       description:
         'Bridge and provide liquidity on remaining 7 chains: Polygon (QuickSwap), BNB Chain (PancakeSwap), Mantle (Fusion X), Linea, Blast. Full 9-chain $CHAR deployment complete.',
       completed: false,
     },
     {
-      quarter: 'Q4 2026',
+      quarter: 'Q1 2027',
       title: '$BULL Launch & 1B $CHAR Burn',
       description:
         'Launch 1B $BULL tokens on Pump.fun (Solana). Weekly podcasts from the Charlie Bull team. Upon graduation: 1B $CHAR permanently burned from Ethereum locked liquidity. $BULL holders get exclusive early access to Charlie\u2019s Angels NFT collection.',
       completed: false,
     },
     {
-      quarter: 'Q1 2027',
+      quarter: 'Q2 2027',
       title: 'Base ↔ Solana Bridge & Raydium Pair',
       description:
         'Bridge $CHAR to Solana. CHAR/BULL swap pair launches on Raydium. $CHAR and $BULL become interoperable across EVM + Solana.',
       completed: false,
     },
     {
-      quarter: 'Q2 2027',
+      quarter: 'Q3 2027',
       title: "Charlie's Angels NFT Launch & IP Development",
       description:
         "Charlie's Angels NFT collection launches on Solana with exclusive benefits for $BULL graduates. Expand Charlie Bull IP through partnerships, merchandise, and multimedia content.",
       completed: false,
     },
     {
-      quarter: 'Q3 2027 & Beyond',
+      quarter: 'Q4 2027 & Beyond',
       title: 'Ecosystem Expansion',
       description:
         'Continuous development of DeFi utilities, governance implementation, strategic partnerships, and expansion of the Charlie Bull universe across Web3 platforms.',
@@ -229,7 +243,7 @@ export const knowledgeBase: KnowledgeBase = {
       url: 'https://medium.com/@charliebullart/charlie-bull-q1-2026-build-update-what-we-shipped-and-whats-coming-at-tge-aeee0d93a19d',
       date: '2026-04-19',
       summary:
-        'Full transparency update: 14-topic AI posting system, AWS infrastructure, Gemini model upgrades, roadmap status, and TGE timeline. Q2 2026 = CoinGecko/Etherscan approvals. Q3 2026 = TGE on Base via Aerodrome.',
+        'Full transparency update: 14-topic AI posting system, AWS infrastructure, Gemini model upgrades, roadmap status, and TGE timeline. Q2 2026 = CoinGecko/Etherscan approvals. Q4 2026 = TGE on Base via Aerodrome.',
     },
     {
       title: 'Charlie Bull ($CHAR) Tokenomics: The Blueprint for a DeFi Revolution',
