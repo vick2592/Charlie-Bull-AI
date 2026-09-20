@@ -73,7 +73,7 @@ Copy `deploy.env.example` → `deploy.env`. **Never commit `deploy.env`.**
 | **Telegram** | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_POLLING` (false), `TELEGRAM_ALLOWED_USER_IDS`, `TELEGRAM_ALLOWED_CHAT_IDS` | |
 | **Bluesky** | `BLUESKY_IDENTIFIER`, `BLUESKY_PASSWORD` (App Password, not main), `BLUESKY_SERVICE` | |
 | **X/Twitter** | `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_SECRET`, `X_BEARER_TOKEN` | Free tier = post only |
-| **Social toggles** | `SOCIAL_POSTS_ENABLED`, `SOCIAL_REPLIES_ENABLED`, `SOCIAL_DEV_MODE` | `SOCIAL_DEV_MODE`: verbose logging only. Errors never posted. Keep `false` in prod. |
+| **Social toggles** | `SOCIAL_POSTS_ENABLED`, `X_POSTS_ENABLED`, `SOCIAL_REPLIES_ENABLED`, `SOCIAL_DEV_MODE` | `X_POSTS_ENABLED`: gates only the scheduler's X posting path (default `false`). Manual X posts via `/api/social/test/x` unaffected. `SOCIAL_DEV_MODE`: verbose logging only. Errors never posted. Keep `false` in prod. |
 | **Security** | `ADMIN_API_KEY` | `openssl rand -hex 32` |
 
 ---
@@ -100,7 +100,7 @@ Persona built in `persona.ts`, data from `knowledgeBase.ts`. Enthusiastic DeFi d
 | Platform | Handle | Status |
 |----------|--------|--------|
 | Bluesky | @charliebull.art | ✅ Posts + auto-replies |
-| X/Twitter | @CharlieBullArt | 🔄 Posts only (replies need Basic tier — **do not document as active**) |
+| X/Twitter | @CharlieBullArt | ⏸️ Scheduled posts disabled (`X_POSTS_ENABLED=false`). Manual test posts still work. Replies need Basic tier — **do not document as active** |
 | Telegram | @Charlie_Bull_bot | ✅ DMs + group mentions + `/woof` |
 | Website | charliebull.art | ✅ Full chat |
 
@@ -241,6 +241,9 @@ Feature work on separate branches (e.g. `node-js-upgrade`, `social-media-improve
 ---
 
 ## 13. Known Issues & Important Notes
+
+### X/Twitter Scheduled Posts — DISABLED (July 2026)
+Scheduled X posts are disabled via `X_POSTS_ENABLED=false` due to insufficient X API credits (free tier limit). Bluesky scheduled posts continue normally. To re-enable: set `X_POSTS_ENABLED=true` in `deploy.env` on Hetzner and restart the container. No code changes needed. Manual X test posts (`POST /api/social/test/x`) remain available regardless of this flag.
 
 ### X/Twitter Auto-Replies — NOT ACTIVE
 Auto-replies on X require the **X API Basic tier**. Do not implement, document as active, or enable `SOCIAL_REPLIES_ENABLED` for X until the account is upgraded. Bluesky auto-replies are fully active and unaffected.

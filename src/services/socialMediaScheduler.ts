@@ -89,6 +89,10 @@ export class SocialMediaScheduler {
       await xClient.authenticate();
     }
 
+    if (!config.xPostsEnabled) {
+      logger.info('X scheduled posts disabled (X_POSTS_ENABLED=false) — Bluesky only');
+    }
+
     // Schedule queue processing at midnight (00:00)
     this.scheduleQueueProcessing();
 
@@ -256,8 +260,8 @@ export class SocialMediaScheduler {
     try {
       // Determine which platforms should post using platform-specific quotas
       const shouldPostBluesky = config.blueskyIdentifier && socialMediaQueue.canPostOnPlatform('bluesky');
-      const shouldPostX = config.xApiKey && config.socialPostsEnabled && 
-                          socialMediaQueue.canPostOnPlatform('x');
+      const shouldPostX = config.xApiKey && config.socialPostsEnabled && config.xPostsEnabled
+                          && socialMediaQueue.canPostOnPlatform('x');
 
       // Exit early only if NEITHER platform should post
       if (!shouldPostBluesky && !shouldPostX) {
@@ -901,6 +905,7 @@ Generate ONLY the reply text (no signatures, no emojis):`;
       jobsRunning: this.jobs.length,
       currentAfternoonIndex: scheduledSlot === '17:00' ? 0 : 1,
       nextAfternoonTime: scheduledSlot,
+      xPostsEnabled: config.xPostsEnabled,
       queueStats: socialMediaQueue.getStats()
     };
   }

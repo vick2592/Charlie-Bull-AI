@@ -39,6 +39,7 @@ const ConfigSchema = z.object({
   ,X_BEARER_TOKEN: z.string().optional().default('')
   // Social Media Features
   ,SOCIAL_POSTS_ENABLED: z.string().optional().default('false')
+  ,X_POSTS_ENABLED: z.string().optional().default('false')
   ,SOCIAL_REPLIES_ENABLED: z.string().optional().default('false')
   // Dev mode: logs error details verbosely but never posts error messages to social media
   ,SOCIAL_DEV_MODE: z.string().optional().default('false')
@@ -81,6 +82,7 @@ export const config = {
   ,xBearerToken: raw.X_BEARER_TOKEN
   // Social Media Features
   ,socialPostsEnabled: raw.SOCIAL_POSTS_ENABLED.toLowerCase() === 'true'
+  ,xPostsEnabled: raw.X_POSTS_ENABLED.toLowerCase() === 'true'
   ,socialRepliesEnabled: raw.SOCIAL_REPLIES_ENABLED.toLowerCase() === 'true'
   ,socialDevMode: raw.SOCIAL_DEV_MODE.toLowerCase() === 'true'
   // Admin API Key

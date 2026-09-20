@@ -43,7 +43,8 @@ export async function socialRoutes(fastify: FastifyInstance) {
         },
         platforms: {
           bluesky: !!config.blueskyIdentifier,
-          x: !!config.xApiKey
+          x: !!config.xApiKey,
+          xPostsEnabled: config.xPostsEnabled
         },
         scheduler: schedulerStatus,
         queue: queueStats
