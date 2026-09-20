@@ -31,7 +31,7 @@ export function getScheduledAfternoonSlotForDate(date: Date = new Date()): '17:0
 const POST_TOPICS = [
   'chain_spotlight',       // Feature one specific chain + DEX
   'tokenomics_fact',       // Specific $CHAR tokenomics detail
-  'roadmap_tge',           // TGE on Base via Aerodrome, Q2 2026
+  'roadmap_tge',           // TGE on Base via Aerodrome, Q4 2026
   'roadmap_bull',          // $BULL educational token on Pump.fun + graduation
   'roadmap_nft',           // NFT collection on Solana for $BULL graduates
   'bridge_tech',           // Axelar Network, LayerZero, Squid Router
@@ -511,13 +511,13 @@ export class SocialMediaScheduler {
     const chainB = chains.filter(c => c.name !== chainA.name)[Math.floor(Math.random() * (chains.length - 1))];
 
     const topicContextMap: Record<PostTopic, string> = {
-      chain_spotlight: `You're posting about ${randomChain.name} and its role in Charlie Bull's upcoming cross-chain deployment. The same $CHAR contract address (${tokenomics.contractAddress}) is registered on ${randomChain.name}${randomChain.isLaunchPool ? ' — this is the PLANNED TGE launch pool on Aerodrome (Q3 2026)!' : `, with ${randomChain.dex} as the planned DEX post-TGE`}. IMPORTANT: $CHAR is pre-TGE. There are NO active liquidity pools on any chain right now. Do NOT say users can swap or buy $CHAR. Frame this as the upcoming cross-chain vision.`,
+      chain_spotlight: `You're posting about ${randomChain.name} and its role in Charlie Bull's upcoming cross-chain deployment. The same $CHAR contract address (${tokenomics.contractAddress}) is registered on ${randomChain.name}${randomChain.isLaunchPool ? ' — this is the PLANNED TGE launch pool on Aerodrome (Q4 2026)!' : `, with ${randomChain.dex} as the planned DEX post-TGE`}. IMPORTANT: $CHAR is pre-TGE. There are NO active liquidity pools on any chain right now. Do NOT say users can swap or buy $CHAR. Frame this as the upcoming cross-chain vision.`,
 
       tokenomics_fact: `Share a specific tokenomics fact. Total supply: ${tokenomics.totalSupply} $CHAR. Allocation: 50% (${tokenomics.allocation.liquidity.tokens}) goes to DEX liquidity across all chains, 35% (${tokenomics.allocation.community.tokens}) goes to community airdrops and rewards, 15% (${tokenomics.allocation.teamDev.tokens}) for IP and project expansion. Ticker is $CHAR. Same contract address on all 9 chains: ${tokenomics.contractAddress}.`,
 
-      roadmap_tge: `The Token Generation Event (TGE) for $CHAR is coming Q3 2026 on Base network via Aerodrome DEX. CoinGecko and Etherscan listing approvals are being processed in Q2 2026. After TGE, $CHAR will expand cross-chain to all 9 blockchains. This is the first official launch of $CHAR — before TGE it's in pre-launch phase. Aerodrome is Base's leading DEX by TVL.`,
+      roadmap_tge: `The Token Generation Event (TGE) for $CHAR is coming Q4 2026 on Base network via Aerodrome DEX. CoinGecko and Etherscan listing approvals are being processed in Q4 2026. After TGE, $CHAR will expand cross-chain to all 9 blockchains. This is the first official launch of $CHAR — before TGE it's in pre-launch phase. Aerodrome is Base's leading DEX by TVL.`,
 
-      roadmap_bull: `$BULL is an educational token launching Q3 2026 on Pump.fun with 1 billion supply. Before $BULL graduates on Pump.fun, 1B $CHAR tokens are locked. After $BULL graduates, the LP is locked, 1B $CHAR is permanently burned (deflationary!), NFT access is unlocked, and a CHAR/BULL swap pair launches on Raydium.`,
+      roadmap_bull: `$BULL is an educational token launching Q1 2027 on Pump.fun with 1 billion supply. Before $BULL graduates on Pump.fun, 1B $CHAR tokens are locked. After $BULL graduates, the LP is locked, 1B $CHAR is permanently burned (deflationary!), NFT access is unlocked, and a CHAR/BULL swap pair launches on Raydium.`,
 
       roadmap_nft: `When $BULL graduates on Pump.fun, holders get exclusive access to an NFT collection on Solana. This bridges Charlie Bull's presence from EVM chains all the way to Solana's NFT ecosystem. The NFT collection is tied to $BULL graduation — the more the community grows $BULL, the sooner this unlocks.`,
 
@@ -525,9 +525,9 @@ export class SocialMediaScheduler {
 
       same_contract: `One of Charlie Bull's standout features: the same contract address (${tokenomics.contractAddress}) is registered across all ${chains.length} chains — Ethereum, Avalanche, Arbitrum, Mantle, Base, Linea, Blast, Polygon, and BSC. IMPORTANT: $CHAR is pre-TGE — no liquidity pools are active yet. This same-address design means that after TGE, bridging is simple and scam verification is easier. You don't need a different address on each chain. Frame this as a pre-TGE feature highlight, not as something users can trade on right now.`,
 
-      why_base_l2: `Charlie Bull is launching on Base, Ethereum's L2 built by Coinbase. Base offers Ethereum security with much lower gas fees. The PLANNED TGE launch pool will be on Aerodrome — Base's top DEX by TVL — in Q3 2026. Base is part of the Superchain — Coinbase's vision for a network of connected L2s. IMPORTANT: $CHAR is pre-TGE, not yet tradeable. Frame this as an upcoming launch on Base, not a live token.`,
+      why_base_l2: `Charlie Bull is launching on Base, Ethereum's L2 built by Coinbase. Base offers Ethereum security with much lower gas fees. The PLANNED TGE launch pool will be on Aerodrome — Base's top DEX by TVL — in Q4 2026. Base is part of the Superchain — Coinbase's vision for a network of connected L2s. IMPORTANT: $CHAR is pre-TGE, not yet tradeable. Frame this as an upcoming launch on Base, not a live token.`,
 
-      community_airdrop: `35% of all $CHAR tokens — that's ${tokenomics.allocation.community.tokens} tokens — are set aside for community airdrops and engagement rewards. This is one of the largest community allocations in the project's tokenomics. The goal: reward early believers and active community members. Airdrop details will roll out closer to TGE Q2 2026.`,
+      community_airdrop: `35% of all $CHAR tokens — that's ${tokenomics.allocation.community.tokens} tokens — are set aside for community airdrops and engagement rewards. This is one of the largest community allocations in the project's tokenomics. The goal: reward early believers and active community members. Airdrop details will roll out closer to TGE Q4 2026.`,
 
       defi_education: `Share a genuine DeFi education nugget. Topics to pick from: what cross-chain bridges actually do, why gas fees differ between chains, what liquidity pools are and why they matter, why the same token on multiple chains is valuable, what an L2 is and why it exists, or what DEX vs CEX means for crypto users.`,
 
@@ -578,7 +578,7 @@ HARD RULES:
 - NO phrase "AI brain" or "my AI brain" or "learning from your engagement/feedback/interactions"
 - NO "pawsome", "woof!", "fetch!" or forced dog puns unless the post type is "fun" and it feels natural
 - Do NOT always end with a question. This is a ${postType} post — follow that structure.
-- Do NOT say "$CHAR is live", "you can swap $CHAR", "buy on [DEX]", or imply the token is currently purchasable or tradeable — $CHAR is PRE-TGE with no active liquidity pools anywhere. TGE is Q3 2026 on Base via Aerodrome.
+- Do NOT say "$CHAR is live", "you can swap $CHAR", "buy on [DEX]", or imply the token is currently purchasable or tradeable — $CHAR is PRE-TGE with no active liquidity pools anywhere. TGE is Q4 2026 on Base via Aerodrome.
 - Do NOT start with "Did you know" more than once per week (recently overused)
 - Do NOT use "fam" more than once per week (recently overused)
 - Write like a real person, not a marketing bot
@@ -812,7 +812,7 @@ You are Charlie Bull, a playful puppy mascot for a cross-chain cryptocurrency pr
 About Charlie Bull:
 - ${project.description}
 - Contract address registered on 9 blockchains — PRE-TGE: no active liquidity pools yet
-- TGE launches Q3 2026 on Base via Aerodrome — $CHAR is NOT currently buyable or tradeable
+- TGE launches Q4 2026 on Base via Aerodrome — $CHAR is NOT currently buyable or tradeable
 - Educational and community-focused
 - Built on Base L2
 
