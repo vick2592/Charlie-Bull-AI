@@ -90,7 +90,7 @@ Persona built in `persona.ts`, data from `knowledgeBase.ts`. Enthusiastic DeFi d
 
 **14 topics** × **7 post types** with 14-post rotation memory to prevent repetition.
 
-**Two-tier character budget (X):** `targetChars = 220` (told to Gemini) / `maxContentChars = 249` (hard ceiling = 280 − 31 char signature). Truncation is last-resort only — fires if Gemini overshoots target by 29+ chars.
+**Two-tier character budget:** When scheduled X posts are enabled, `targetChars = 220` and `maxContentChars = 249` preserve the shared X ceiling. For Bluesky-only scheduled posts, Gemini may generate up to `280` content characters; the formatter reserves the official signature and keeps the final Bluesky payload under `300`. Overlong 281–300 character responses are trimmed at a sentence or word boundary.
 
 **`stripSocialSignature()`:** Called before formatter on all post/reply output. Removes trailing dog emojis (surrogate-pair safe with `u` flag), other trailing pictographic emoji, empty lines, model sign-off lines, and `#CharlieBull` lines. Prevents double-signature with the official `- Charlie AI 🐾🐶 #CharlieBull` footer.
 
@@ -257,7 +257,7 @@ Auto-replies on X require the **X API Basic tier**. Do not implement, document a
 Gemini model names deprecate over time and return 404s. The current chain is `gemini-3.1-flash-lite,gemini-2.5-flash-lite`. `gemini-1.5-*` and `gemini-2.0-flash` are fully deprecated — do not use. The normalizer in `geminiClient.ts` maps legacy names to current equivalents as a safety net. Watch for `gemini_configured_models_missing_from_list` warnings in logs and update `GEMINI_MODELS` in `deploy.env` when a new deprecation is announced.
 
 ### Social Post Failure & Retry Behaviour
-When Gemini fails (rate limit, network error, etc.) `generateWithGemini` returns `isError: true`. The scheduler detects this and **never posts the error string to social media**. Instead it retries up to 3 times with a 30-minute delay between attempts. If all 3 fail, the post slot is skipped and the scheduler waits for the next scheduled time. If you see 3 or more consecutive missing posts, check `docker logs charlie-ai` for the root cause.
+When Gemini fails (rate limit, network error, etc.) `generateWithGemini` returns `isError: true`. The scheduler detects this and **never posts the error string to social media**. Instead it retries up to 3 times with a 30-minute delay between attempts, then waits 60 seconds for one final fallback execution before marking the slot failed. Bluesky publishing also retries API failures with reauthentication and 5/15/30-second backoff. If the fallback fails or you see consecutive missing posts, check `docker logs charlie-ai` for the root cause.
 
 ### Telegram Polling on Hetzner
 Only one polling process should run at a time. If `TELEGRAM_POLLING=true` and more than one container is running, Telegram updates will be split between instances. Use a single container deployment.

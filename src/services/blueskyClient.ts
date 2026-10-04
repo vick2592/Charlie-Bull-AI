@@ -11,6 +11,7 @@ import type { SocialPost, SocialInteraction, SocialReply } from '../types/social
 export class BlueskyClient {
   private agent: AtpAgent;
   private authenticated: boolean = false;
+  private readonly createPostRetryDelaysMs = [5_000, 15_000, 30_000] as const;
 
   constructor() {
     this.agent = new AtpAgent({
@@ -96,34 +97,56 @@ export class BlueskyClient {
     }
   }
 
+  private waitForRetry(delayMs: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, delayMs));
+  }
+
   /**
    * Create a post on Bluesky
    */
   async createPost(content: string): Promise<SocialPost | null> {
-    await this.ensureAuthenticated();
+    for (let attempt = 0; attempt <= this.createPostRetryDelaysMs.length; attempt++) {
+      try {
+        await this.ensureAuthenticated();
 
-    try {
-      const rt = new RichText({ text: content });
-      await rt.detectFacets(this.agent);
+        const rt = new RichText({ text: content });
+        await rt.detectFacets(this.agent);
 
-      const response = await this.agent.post({
-        text: rt.text,
-        facets: rt.facets,
-        createdAt: new Date().toISOString()
-      });
+        const response = await this.agent.post({
+          text: rt.text,
+          facets: rt.facets,
+          createdAt: new Date().toISOString()
+        });
 
-      logger.info({ uri: response.uri }, 'Posted to Bluesky');
+        if (!response || (response as any).status === 1 || typeof response.uri !== 'string') {
+          throw new Error('Bluesky returned an invalid createPost response');
+        }
 
-      return {
-        id: response.uri,
-        platform: 'bluesky',
-        content,
-        timestamp: new Date()
-      };
-    } catch (error: any) {
-      this.handleApiError(error, 'createPost');
-      return null;
+        logger.info({ uri: response.uri, attempt: attempt + 1 }, 'Posted to Bluesky');
+
+        return {
+          id: response.uri,
+          platform: 'bluesky',
+          content,
+          timestamp: new Date()
+        };
+      } catch (error: any) {
+        this.handleApiError(error, 'createPost');
+
+        if (attempt === this.createPostRetryDelaysMs.length) {
+          logger.error({ attempt: attempt + 1 }, 'Bluesky createPost failed after all retries');
+          return null;
+        }
+
+        const delayMs = this.createPostRetryDelaysMs[attempt];
+        this.authenticated = false;
+        logger.warn({ attempt: attempt + 1, nextAttempt: attempt + 2, delayMs }, 'Retrying Bluesky createPost after reauthentication');
+        await this.waitForRetry(delayMs);
+        await this.authenticate();
+      }
     }
+
+    return null;
   }
 
   /**

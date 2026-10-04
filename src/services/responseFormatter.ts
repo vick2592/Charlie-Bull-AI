@@ -14,11 +14,15 @@ export interface FormattedResponse {
   characterCount: number;
 }
 
+export const BLUESKY_CONTENT_LIMIT = 280;
+export const BLUESKY_HARD_LIMIT = 300;
+
 /**
  * Smart truncation at word or sentence boundaries
  * NEVER adds "..." - always provides clean cuts
  */
 function smartTruncate(text: string, maxLength: number): string {
+  text = text.trimEnd();
   if (text.length <= maxLength) return text;
 
   // Try to cut at last sentence within limit
@@ -155,9 +159,9 @@ export function formatForBluesky(content: string, includeLinks: boolean = true):
 
   // Add AI signature with paw and dog emojis (Charlie is a puppy, not a cow!)
   const signature = '\n\n- Charlie AI 🐾🐶 #CharlieBull';
-  const maxContentLength = 300 - signature.length;
+  const maxContentLength = BLUESKY_HARD_LIMIT - signature.length;
   
-  // Smart truncation to fit within 300 chars with signature
+  // Keep the content budget below Bluesky's hard limit while preserving a clean ending.
   text = smartTruncate(text, maxContentLength) + signature;
 
   return {

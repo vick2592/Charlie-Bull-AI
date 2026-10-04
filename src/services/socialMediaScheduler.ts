@@ -11,7 +11,13 @@ import { socialMediaQueue } from './socialMediaQueue.js';
 import { blueskyClient } from './blueskyClient.js';
 import { xClient } from './xClient.js';
 import { generateWithGemini } from './geminiClient.js';
-import { generateContextualResponse, formatForX, formatForBluesky } from './responseFormatter.js';
+import {
+  generateContextualResponse,
+  formatForX,
+  formatForBluesky,
+  BLUESKY_CONTENT_LIMIT,
+  BLUESKY_HARD_LIMIT,
+} from './responseFormatter.js';
 import { knowledgeBase } from './knowledgeBase.js';
 import { getMarketSnapshot, formatMarketContext } from './priceService.js';
 import { DEFAULT_SCHEDULE } from '../types/social.js';
@@ -245,6 +251,7 @@ export class SocialMediaScheduler {
    */
   private readonly POST_RETRY_DELAY_MS = 30 * 60 * 1000; // 30 minutes
   private readonly POST_MAX_RETRIES = 3;
+  private readonly POST_FALLBACK_DELAY_MS = 60 * 1000;
 
   /**
    * Create a scheduled post
@@ -252,11 +259,15 @@ export class SocialMediaScheduler {
    * X FREE tier: Posts 2x/day (morning + afternoon/evening) - no replies means more budget for posts
    * Both platforms post on the same schedule for consistency
    *
-   * On Gemini failure: retries up to POST_MAX_RETRIES times with POST_RETRY_DELAY_MS between each.
-   * After all retries exhausted, skips slot and waits for next scheduled time.
+  * On Gemini failure: retries up to POST_MAX_RETRIES times with POST_RETRY_DELAY_MS between each.
+  * After retries or publishing failures, performs one final fallback execution after 60 seconds.
    * Error messages from Gemini are NEVER posted to social media.
    */
-  private async createScheduledPost(timeOfDay: 'morning' | 'afternoon' | 'evening', retryAttempt: number = 0): Promise<void> {
+  private async createScheduledPost(
+    timeOfDay: 'morning' | 'afternoon' | 'evening',
+    retryAttempt: number = 0,
+    fallbackAttempt: boolean = false
+  ): Promise<void> {
     try {
       // Determine which platforms should post using platform-specific quotas
       const shouldPostBluesky = config.blueskyIdentifier && socialMediaQueue.canPostOnPlatform('bluesky');
@@ -280,7 +291,7 @@ export class SocialMediaScheduler {
         // Content generation failed (Gemini error / rate limit).
         // Retry up to POST_MAX_RETRIES times with a 30-minute delay between each attempt.
         // Error messages from Gemini are NEVER posted — the generatePostContent guard handles that.
-        if (retryAttempt < this.POST_MAX_RETRIES - 1) {
+        if (!fallbackAttempt && retryAttempt < this.POST_MAX_RETRIES - 1) {
           const nextAttempt = retryAttempt + 1;
           const delayMinutes = this.POST_RETRY_DELAY_MS / 60_000;
           logger.warn(
@@ -295,11 +306,21 @@ export class SocialMediaScheduler {
               logger.error({ err, timeOfDay, nextAttempt }, 'Scheduled post retry threw unexpectedly')
             );
           }, this.POST_RETRY_DELAY_MS);
+        } else if (!fallbackAttempt) {
+          logger.warn(
+            { timeOfDay, delaySeconds: this.POST_FALLBACK_DELAY_MS / 1000, reason: this.lastFailureReason },
+            'Post generation retries exhausted — scheduling final fallback execution'
+          );
+          setTimeout(() => {
+            this.createScheduledPost(timeOfDay, 0, true).catch(err =>
+              logger.error({ err, timeOfDay }, 'Final scheduled post fallback threw unexpectedly')
+            );
+          }, this.POST_FALLBACK_DELAY_MS);
         } else {
-          // All retries exhausted — skip this slot entirely.
+          // Final fallback exhausted — mark this slot as failed.
           logger.error(
-            { timeOfDay, attemptsUsed: this.POST_MAX_RETRIES, reason: this.lastFailureReason },
-            `All ${this.POST_MAX_RETRIES} post attempts failed for ${timeOfDay} slot — skipping. Will try again at next scheduled time (morning/afternoon/evening).`
+            { timeOfDay, fallbackAttempt: true, reason: this.lastFailureReason },
+            `Final fallback failed for ${timeOfDay} slot — marking slot failed. Will try again at next scheduled time (morning/afternoon/evening).`
           );
         }
         return;
@@ -309,21 +330,22 @@ export class SocialMediaScheduler {
       if (shouldPostBluesky) {
         const formattedContent = formatForBluesky(content);
 
-        // Guard: Bluesky hard limit is 300 graphemes. Skip if somehow still over limit.
-        if (formattedContent.characterCount > 300) {
+        // Guard: Bluesky hard limit is 300 graphemes. Treat an over-limit result as
+        // a failed dispatch so the slot receives its final fallback attempt.
+        if (formattedContent.characterCount > BLUESKY_HARD_LIMIT) {
           logger.error(
-            { characterCount: formattedContent.characterCount, limit: 300, platform: 'bluesky' },
+            { characterCount: formattedContent.characterCount, limit: BLUESKY_HARD_LIMIT, platform: 'bluesky' },
             'Post exceeds Bluesky character limit — skipping to avoid HTTP error. Check content generation.'
           );
+          throw new Error(`Bluesky post exceeds ${BLUESKY_HARD_LIMIT} characters after formatting`);
         } else {
           const post = await blueskyClient.createPost(formattedContent.text);
           if (post) {
             socialMediaQueue.incrementPostCount('bluesky');
             logger.info({ timeOfDay, platform: 'bluesky' }, 'Posted scheduled content to Bluesky');
           } else {
-            logger.warn(
-              { timeOfDay, platform: 'bluesky' },
-              'Bluesky post returned null — HTTP error or auth failure. Post skipped. Check client logs above.'
+            throw new Error(
+              `Bluesky scheduled post failed after client retries for ${timeOfDay} slot`
             );
           }
         }
@@ -345,9 +367,8 @@ export class SocialMediaScheduler {
             socialMediaQueue.incrementPostCount('x');
             logger.info({ timeOfDay, platform: 'x' }, 'Posted scheduled content to X');
           } else {
-            logger.warn(
-              { timeOfDay, platform: 'x' },
-              'X post returned null — HTTP error or auth failure. Post skipped. Check client logs above.'
+            throw new Error(
+              `X scheduled post failed for ${timeOfDay} slot`
             );
           }
         }
@@ -355,7 +376,19 @@ export class SocialMediaScheduler {
 
       logger.info({ timeOfDay }, 'Completed scheduled post cycle');
     } catch (error) {
-      logger.error({ error }, 'Error creating scheduled post');
+      if (!fallbackAttempt) {
+        logger.error(
+          { error, timeOfDay, delaySeconds: this.POST_FALLBACK_DELAY_MS / 1000 },
+          'Scheduled post dispatch failed — scheduling final fallback execution'
+        );
+        setTimeout(() => {
+          this.createScheduledPost(timeOfDay, 0, true).catch(err =>
+            logger.error({ err, timeOfDay }, 'Final scheduled post fallback threw unexpectedly')
+          );
+        }, this.POST_FALLBACK_DELAY_MS);
+      } else {
+        logger.error({ error, timeOfDay }, 'Final scheduled post fallback failed — slot marked failed');
+      }
     }
   }
 
@@ -639,11 +672,11 @@ Output ONLY the post text (${maxChars} chars max). No quotes. No labels. No prea
     try {
       const signature = '\n\n- Charlie AI 🐾🐶 #CharlieBull';
       // Content is posted to both Bluesky (300 graphemes) AND X (280 weighted chars).
-      // X is more restrictive — use X's limit so the same content fits both platforms.
-      // JS .length === Twitter weighted length for our characters, so budget directly.
+      // Bluesky gets the larger generation budget when it is the only destination.
       const X_CHAR_LIMIT = 280;
-      const maxContentChars = X_CHAR_LIMIT - signature.length; // ~249 chars — hard ceiling
-      const targetChars = 220; // Lower target given to Gemini (buffer prevents truncation)
+      const xPostingEnabled = Boolean(config.xApiKey && config.socialPostsEnabled && config.xPostsEnabled);
+      const maxContentChars = xPostingEnabled ? X_CHAR_LIMIT - signature.length : BLUESKY_CONTENT_LIMIT;
+      const targetChars = xPostingEnabled ? 220 : 250;
 
       logger.info({ topic, postType, timeOfDay, retryCount }, 'Generating post with topic/type selection');
 
