@@ -542,6 +542,7 @@ export class SocialMediaScheduler {
     // Pick two different chains for comparison topic
     const chainA = chains[Math.floor(Math.random() * chains.length)];
     const chainB = chains.filter(c => c.name !== chainA.name)[Math.floor(Math.random() * (chains.length - 1))];
+    const chainNames = chains.map(chain => chain.name).join(', ');
 
     const topicContextMap: Record<PostTopic, string> = {
       chain_spotlight: `You're posting about ${randomChain.name} and its role in Charlie Bull's upcoming cross-chain deployment. The same $CHAR contract address (${tokenomics.contractAddress}) is registered on ${randomChain.name}${randomChain.isLaunchPool ? ' — this is the PLANNED TGE launch pool on Aerodrome (Q4 2026)!' : `, with ${randomChain.dex} as the planned DEX post-TGE`}. IMPORTANT: $CHAR is pre-TGE. There are NO active liquidity pools on any chain right now. Do NOT say users can swap or buy $CHAR. Frame this as the upcoming cross-chain vision.`,
@@ -556,7 +557,7 @@ export class SocialMediaScheduler {
 
       bridge_tech: `Charlie Bull uses three cross-chain protocols: Axelar Network, Squid Router, and the Base ↔ Solana Bridge. These power the ability for $CHAR to exist across chains with the SAME contract address (${tokenomics.contractAddress}). Axelar is a proof-of-stake chain purpose-built for cross-chain communication. Squid Router enables single-transaction cross-chain swaps. The Base ↔ Solana Bridge connects EVM and Solana ecosystems.`,
 
-      same_contract: `One of Charlie Bull's standout features: the same contract address (${tokenomics.contractAddress}) is registered across all ${chains.length} chains — Ethereum, Avalanche, Arbitrum, Mantle, Base, Linea, Blast, Polygon, and BSC. IMPORTANT: $CHAR is pre-TGE — no liquidity pools are active yet. This same-address design means that after TGE, bridging is simple and scam verification is easier. You don't need a different address on each chain. Frame this as a pre-TGE feature highlight, not as something users can trade on right now.`,
+      same_contract: `One of Charlie Bull's standout features: the same contract address (${tokenomics.contractAddress}) is registered across all ${chains.length} chains — ${chainNames}. IMPORTANT: $CHAR is pre-TGE — no liquidity pools are active yet. This same-address design means that after TGE, bridging is simple and scam verification is easier. You don't need a different address on each chain. Frame this as a pre-TGE feature highlight, not as something users can trade on right now.`,
 
       why_base_l2: `Charlie Bull is launching on Base, Ethereum's L2 built by Coinbase. Base offers Ethereum security with much lower gas fees. The PLANNED TGE launch pool will be on Aerodrome — Base's top DEX by TVL — in Q4 2026. Base is part of the Superchain — Coinbase's vision for a network of connected L2s. IMPORTANT: $CHAR is pre-TGE, not yet tradeable. Frame this as an upcoming launch on Base, not a live token.`,
 

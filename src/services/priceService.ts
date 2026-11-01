@@ -6,8 +6,9 @@
  *      plus BTC as a market-wide indicator.
  *
  * Tracked chain tokens:
- *   BTC (market), ETH (Ethereum/Base/Linea/Blast), BNB (BSC), AVAX (Avalanche),
- *   ARB (Arbitrum), MNT (Mantle), POL/MATIC (Polygon), BLAST (Blast), SOL (roadmap bridge)
+ *   BTC (market), ETH (Ethereum/Base/Linea), HYPE (Hype EVM), BNB (BSC),
+ *   AVAX (Avalanche), ARB (Arbitrum), MNT (Mantle), POL/MATIC (Polygon),
+ *   SOL (roadmap bridge)
  *
  * Data is cached for 5 minutes to avoid hammering free APIs.
  * All fetches fail gracefully — if data is unavailable Charlie posts/replies without price info.
@@ -50,18 +51,18 @@ const CACHE_TTL_MS = 5 * 60 * 1000;
 const CHAR_CONTRACT = '0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1';
 
 // Native/governance tokens for all 9 chains Charlie is deployed on, plus BTC as market indicator.
-// Covers: Ethereum, Base (ETH), Linea (ETH), Blast (ETH+BLAST), BSC (BNB),
+// Covers: Ethereum, Base (ETH), Linea (ETH), Hype EVM (HYPE), BSC (BNB),
 //         Avalanche (AVAX), Arbitrum (ARB), Mantle (MNT), Polygon (POL/MATIC)
 // Also includes SOL for the roadmap Base↔Solana bridge and Raydium pair.
 const CHAIN_TOKEN_COINGECKO_IDS = [
   'bitcoin',       // BTC — market-wide indicator
-  'ethereum',      // ETH — Ethereum, Base, Linea, Blast gas token
+  'ethereum',      // ETH — Ethereum, Base, Linea gas token
   'binancecoin',   // BNB — BNB Smart Chain
   'avalanche-2',            // AVAX — Avalanche
   'polygon-ecosystem-token', // POL — Polygon (rebranded from MATIC, new CoinGecko ID)
   'arbitrum',               // ARB — Arbitrum
   'mantle',                 // MNT — Mantle
-  'blast',                  // BLAST — Blast L2 governance token
+  'hyperliquid',             // HYPE — Hype EVM native token
   'solana',                 // SOL — roadmap: Base↔Solana bridge + Raydium pair
 ];
 
@@ -74,7 +75,7 @@ const COINGECKO_SYMBOL: Record<string, string> = {
   'polygon-ecosystem-token': 'POL',
   arbitrum: 'ARB',
   mantle: 'MNT',
-  blast: 'BLAST',
+  hyperliquid: 'HYPE',
   solana: 'SOL',
 };
 
@@ -244,7 +245,7 @@ export function formatMarketContext(snapshot: MarketSnapshot): string {
 
   if (snapshot.topTokens.length > 0) {
     lines.push('CHAIN NATIVE TOKENS (live via CoinGecko — covers all 9 Charlie Bull chains):');
-    lines.push('  ETH = Ethereum, Base, Linea, Blast gas token | BNB = BSC | AVAX = Avalanche | ARB = Arbitrum | MNT = Mantle | POL = Polygon | BLAST = Blast governance | SOL = Solana (roadmap bridge)');
+    lines.push('  ETH = Ethereum, Base, Linea gas token | HYPE = Hype EVM native token | BNB = BSC | AVAX = Avalanche | ARB = Arbitrum | MNT = Mantle | POL = Polygon | SOL = Solana (roadmap bridge)');
     for (const t of snapshot.topTokens) {
       lines.push(`  ${t.symbol}: ${t.priceUsd} (24h: ${t.priceChange24h})`);
     }
@@ -270,4 +271,3 @@ export function formatCharPriceResponse(snapshot: MarketSnapshot): string {
   }
   return lines.join('\n');
 }
-
