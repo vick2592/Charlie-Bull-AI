@@ -86,6 +86,7 @@ See `deploy.env.example` (production) or `.env.example` (local dev).
 | `X_BEARER_TOKEN` | X/Twitter bearer token |
 | `SOCIAL_POSTS_ENABLED` | `false` — enable automated posting |
 | `SOCIAL_REPLIES_ENABLED` | `false` — enable Bluesky automated replies |
+| `HOLIDAY_TIMEZONE` | `America/New_York` — calendar timezone for holiday personality in scheduled posts |
 | `ADMIN_API_KEY` | Secret for write endpoints (generate with `openssl rand -hex 32`) |
 
 ### Telegram
@@ -142,6 +143,10 @@ Charlie's posts rotate across **14 distinct topics** to prevent repetition:
 Each post also rotates across **7 structural types**: `educational_fact`, `opinion`, `story`, `announcement`, `fun`, `question`, `comparison` — preventing the same format appearing twice in a row.
 
 A **14-entry post memory log** tracks recent topic+type combos. Topic selection avoids the last 5 used topics. Post type selection avoids the last 2 used types.
+
+### Holiday Personality
+
+Scheduled posts receive additional personality guidance on supported fixed-date holidays: New Year's Day, Valentine's Day, Halloween, and Christmas Day. The calendar uses `HOLIDAY_TIMEZONE` (default `America/New_York`), while cron execution remains in UTC. Holiday guidance changes tone only; it preserves the pre-TGE rule, factual knowledge base, character limits, signature formatting, quotas, and retry behavior.
 
 ### Bluesky Reply Setup
 

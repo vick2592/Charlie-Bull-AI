@@ -26,6 +26,8 @@ This guide will help you test the Bluesky and X/Twitter integration for Charlie 
    # Enable Bluesky features for testing
    SOCIAL_POSTS_ENABLED=true
    SOCIAL_REPLIES_ENABLED=true
+   # Optional: calendar timezone for holiday personality in scheduled posts
+   HOLIDAY_TIMEZONE=America/New_York
    ```
 
 3. **Keep X credentials disabled for now:**
@@ -153,6 +155,18 @@ watch -n 30 'curl -s http://127.0.0.1/api/social/status'
 ```
 
 If you need to force a manual post during testing, use the admin test endpoints instead of editing cron expressions.
+
+### Holiday Personality Testing
+
+Holiday personality is applied automatically during scheduled post generation when the calendar date matches a supported holiday. The scheduler runs cron jobs in UTC, but holiday dates use `HOLIDAY_TIMEZONE` (default `America/New_York`).
+
+For a safe local check without publishing, run the holiday unit tests:
+
+```bash
+npm test -- src/services/holidayContext.test.ts
+```
+
+For an end-to-end production-like check, enable scheduled posting only in a controlled environment and verify logs include `Applying holiday personality to scheduled post`. Confirm the generated Bluesky post remains under 300 characters, contains one official signature, and does not claim active liquidity or invent a promotion.
 
 ### Rate Limit Testing
 

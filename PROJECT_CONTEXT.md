@@ -112,7 +112,7 @@ Persona built in `persona.ts`, data from `knowledgeBase.ts`. Enthusiastic DeFi d
 
 **$CHAR:** ERC-20 · 420.69B supply · `0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1` (same on all 9 chains)
 - Distribution: 50% Liquidity (locked) · 35% Community · 15% Team
-- Chains: Base ⭐ (Aerodrome), Ethereum (Uniswap), Arbitrum (Uniswap), Polygon (QuickSwap), Avalanche (LFGJ), BSC (PancakeSwap), Mantle (Fusion X), Linea (Linea DEX), Blast (Blast DEX)
+- Chains: Base ⭐ (Aerodrome), Ethereum (Uniswap), Arbitrum (Uniswap), Polygon (QuickSwap), Avalanche (LFGJ), BSC (PancakeSwap), Mantle (Fusion X), Linea (Linea DEX), Hype EVM (post-TGE DEX TBD)
 - Bridges: Axelar, Squid Router, Base↔Solana
 
 **$BULL:** Pump.fun/Solana · 1B supply · Launch Q1 2027 post-TGE
@@ -124,7 +124,7 @@ Persona built in `persona.ts`, data from `knowledgeBase.ts`. Enthusiastic DeFi d
 
 **`geminiClient.ts`:** SDK + REST fallback. Tries `GEMINI_MODELS` chain in order. Normalizes deprecated model names to current equivalents. **60s timeout on both SDK and REST call paths** — prevents indefinite hangs if the API accepts the TCP connection but never responds (timeout rejects → caught → next model in chain or `isError: true` fallback). Returns `{ text, isError: true }` on failure — **callers must check `isError`**. Always applies `ensureDogEmoji()` (stripped by `stripSocialSignature()` for social posts).
 
-**`priceService.ts`:** DexScreener ($CHAR on-chain, highest-liquidity pair per chain, `[]` pre-TGE) + CoinGecko (sole source for chain tokens: BTC, ETH, BNB, AVAX, POL, ARB, MNT, BLAST, SOL). 5-min cache, parallel fetch, 8s timeout, **never throws**. Key exports: `getMarketSnapshot()`, `formatMarketContext()`, `formatCharPriceResponse()`. CoinGecko ID gotchas: POL=`polygon-ecosystem-token`, BLAST=`blast`, MNT=`mantle`. Zero-price filter excludes null/≤0 prices.
+**`priceService.ts`:** DexScreener ($CHAR on-chain, highest-liquidity pair per chain, `[]` pre-TGE) + CoinGecko (sole source for chain tokens: BTC, ETH, BNB, AVAX, POL, ARB, MNT, HYPE, SOL). 5-min cache, parallel fetch, 8s timeout, **never throws**. Key exports: `getMarketSnapshot()`, `formatMarketContext()`, `formatCharPriceResponse()`. CoinGecko ID gotchas: POL=`polygon-ecosystem-token`, HYPE=`hyperliquid`, MNT=`mantle`. Zero-price filter excludes null/≤0 prices.
 
 **`memoryStore.ts`:** In-memory only (cleared on restart). ~10 turns, 5000 char budget. Server memory takes precedence over frontend-supplied history.
 
@@ -135,6 +135,8 @@ Persona built in `persona.ts`, data from `knowledgeBase.ts`. Enthusiastic DeFi d
 **`telegramBot.ts`:** Long-polling (no webhook). Calls its own `/v1/chat` internally. Responds to DMs, group mentions, `/woof`. Keep-alive HTTPS agent.
 
 **`blueskyClient.ts`:** AT Protocol `AtpAgent`. App Password auth. `RichText.detectFacets()` before posting. `handleApiError()` resets auth on 401/403/ExpiredToken for auto re-auth.
+
+**`holidayContext.ts`:** Fixed-date holiday personality guidance for scheduled social posts. Resolves dates in the configured `HOLIDAY_TIMEZONE` (default `America/New_York`) while cron jobs remain pinned to UTC. Holiday instructions add tone only and preserve factual and pre-TGE guardrails.
 
 **`xClient.ts`:** OAuth 1.0a. **Post only** (Free tier) — do NOT implement auto-replies until Basic tier. `handleApiError()` resets auth on 401/403. **280 weighted char limit** (not 300).
 
@@ -246,6 +248,10 @@ Feature work on separate branches (e.g. `node-js-upgrade`, `social-media-improve
 
 ### X/Twitter Scheduled Posts — DISABLED (July 2026)
 Scheduled X posts are disabled via `X_POSTS_ENABLED=false` due to insufficient X API credits (free tier limit). Bluesky scheduled posts continue normally. To re-enable: set `X_POSTS_ENABLED=true` in `deploy.env` on Hetzner and restart the container. No code changes needed. Manual X test posts (`POST /api/social/test/x`) remain available regardless of this flag.
+
+### Holiday Personality for Scheduled Posts
+
+Scheduled posts use the fixed-date holiday resolver in `holidayContext.ts`. Set `HOLIDAY_TIMEZONE` in `deploy.env` to choose the calendar timezone; it defaults to `America/New_York`. The current supported dates are New Year's Day, Valentine's Day, Halloween, and Christmas Day. Holiday context changes Charlie's tone only and never authorizes invented promotions, prices, token launches, active liquidity, or other changes to the project facts.
 
 ### X/Twitter Auto-Replies — NOT ACTIVE
 Auto-replies on X require the **X API Basic tier**. Do not implement, document as active, or enable `SOCIAL_REPLIES_ENABLED` for X until the account is upgraded. Bluesky auto-replies are fully active and unaffected.
