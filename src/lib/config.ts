@@ -43,6 +43,8 @@ const ConfigSchema = z.object({
   ,SOCIAL_REPLIES_ENABLED: z.string().optional().default('false')
   // Dev mode: logs error details verbosely but never posts error messages to social media
   ,SOCIAL_DEV_MODE: z.string().optional().default('false')
+  // Holiday calendar timezone for scheduled social post personality
+  ,HOLIDAY_TIMEZONE: z.string().optional().default('America/New_York')
   // Admin API Key for write endpoints
   ,ADMIN_API_KEY: z.string().optional().default('')
 });
@@ -85,6 +87,7 @@ export const config = {
   ,xPostsEnabled: raw.X_POSTS_ENABLED.toLowerCase() === 'true'
   ,socialRepliesEnabled: raw.SOCIAL_REPLIES_ENABLED.toLowerCase() === 'true'
   ,socialDevMode: raw.SOCIAL_DEV_MODE.toLowerCase() === 'true'
+  ,holidayTimezone: raw.HOLIDAY_TIMEZONE
   // Admin API Key
   ,adminApiKey: raw.ADMIN_API_KEY
 };

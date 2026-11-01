@@ -30,4 +30,15 @@ describe('getHolidayContext', () => {
     expect(getHolidayContext(date, 'America/New_York')?.key).toBe('halloween');
     expect(getHolidayContext(date, 'UTC')).toBeNull();
   });
+
+  it('keeps holiday instructions focused on personality and factual guardrails', () => {
+    const instructions = getHolidayContext(
+      new Date('2026-10-31T12:00:00Z'),
+      'UTC'
+    )?.promptInstructions;
+
+    expect(instructions).toContain('playful spooky personality');
+    expect(instructions).toContain('Do not invent promotions');
+    expect(instructions).not.toContain('rpc.hyperliquid.xyz');
+  });
 });

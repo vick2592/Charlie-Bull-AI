@@ -20,6 +20,7 @@ import {
 } from './responseFormatter.js';
 import { knowledgeBase } from './knowledgeBase.js';
 import { getMarketSnapshot, formatMarketContext } from './priceService.js';
+import { getHolidayContext } from './holidayContext.js';
 import { DEFAULT_SCHEDULE } from '../types/social.js';
 import type { Platform } from '../types/social.js';
 
@@ -532,7 +533,14 @@ export class SocialMediaScheduler {
   /**
    * Build a topic-specific prompt with real KB facts for Gemini
    */
-  private buildTopicPrompt(topic: PostTopic, postType: PostType, timeOfDay: string, maxChars: number, marketContext: string = ''): string {
+  private buildTopicPrompt(
+    topic: PostTopic,
+    postType: PostType,
+    timeOfDay: string,
+    maxChars: number,
+    marketContext: string = '',
+    holidayInstructions: string = ''
+  ): string {
     const { tokenomics, technology, roadmap } = knowledgeBase;
     const chains = technology.chainDeployments;
 
@@ -619,6 +627,7 @@ HARD RULES:
 
 RECENT TOPICS USED (do NOT repeat these angles): ${recentTopics.join(', ') || 'none yet'}
 RECENT POST TYPES USED: ${recentTypes.join(', ') || 'none yet'}
+${holidayInstructions ? `\nHOLIDAY PERSONALITY:\n${holidayInstructions}` : ''}
 ${marketContext ? `\n${marketContext}` : ''}
 Output ONLY the post text (${maxChars} chars max). No quotes. No labels. No preamble.`;
   }
@@ -688,9 +697,24 @@ Output ONLY the post text (${maxChars} chars max). No quotes. No labels. No prea
       // Fetch live market data to inject into the post prompt
       const marketSnapshot = await getMarketSnapshot();
       const marketContext = formatMarketContext(marketSnapshot);
+      const holidayContext = getHolidayContext(new Date(), config.holidayTimezone);
+
+      if (holidayContext) {
+        logger.info(
+          { holiday: holidayContext.name, timezone: config.holidayTimezone, timeOfDay },
+          'Applying holiday personality to scheduled post'
+        );
+      }
 
       // Give Gemini the lower target; validate against the hard ceiling
-      const prompt = this.buildTopicPrompt(topic, postType, timeOfDay, targetChars, marketContext) + retryInstruction;
+      const prompt = this.buildTopicPrompt(
+        topic,
+        postType,
+        timeOfDay,
+        targetChars,
+        marketContext,
+        holidayContext?.promptInstructions
+      ) + retryInstruction;
 
       const response = await generateWithGemini([
         { role: 'user', content: prompt }
