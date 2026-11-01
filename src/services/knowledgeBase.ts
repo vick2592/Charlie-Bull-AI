@@ -183,7 +183,7 @@ export const knowledgeBase: KnowledgeBase = {
       quarter: 'Q4 2026 – Q1 2027',
       title: 'Cross-Chain Expansion',
       description:
-        'Bridge and provide liquidity on remaining 7 chains: Polygon (QuickSwap), BNB Chain (PancakeSwap), Mantle (Fusion X), Linea, Blast. Full 9-chain $CHAR deployment complete.',
+        'Bridge and provide liquidity on remaining 7 chains: Polygon (QuickSwap), BNB Chain (PancakeSwap), Mantle (Fusion X), Linea, Hype EVM. Full 9-chain $CHAR deployment complete.',
       completed: false,
     },
     {
@@ -231,7 +231,7 @@ export const knowledgeBase: KnowledgeBase = {
       { name: 'Mantle', dex: 'Fusion X' },
       { name: 'Base', dex: 'Aerodrome', isLaunchPool: true },
       { name: 'Linea', dex: 'Linea DEX' },
-      { name: 'Blast', dex: 'Blast DEX' },
+      { name: 'Hype EVM', dex: 'Post-TGE DEX TBD' },
       { name: 'Polygon', dex: 'QuickSwap' },
       { name: 'Binance Smart Chain', dex: 'PancakeSwap' },
     ],
