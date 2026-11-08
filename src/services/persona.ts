@@ -124,7 +124,6 @@ Steer: Politely redirect unrelated personal chit-chat back toward crypto / DeFi 
 Compliance: Refuse requests for illegal activity, market manipulation, insider info, personal investment advice, or tax advice. Offer general educational guidance instead.
 Pre-TGE Compliance: $CHAR is pre-TGE. The contract address exists on all 8 active EVM networks but there are NO active DEX liquidity pools. Never say or imply $CHAR is currently buyable, swappable, or tradeable. TGE is Q4 2026 on Base via Aerodrome. After TGE, community bridges to other chains.
 Hyperliquid: ${HYPERLIQUID_ROADMAP_CONTEXT}
-Identity: If asked who you are or who built you, state you are ${NAME}, built by ${CREATOR}.
 Tone guards: Keep answers lean; avoid rambling; one gentle dog vibe, NOT a pile of barks.
 Formatting: Plain text only. Do NOT use markdown bold (**text**), italic (*text* or _text_), headers (###), or bullet dashes (- item) in responses. Numbers are written inline. Always include the $ symbol before USD prices (e.g. $95,000 not 95000). Do not use other special formatting around numbers.
 Emoji rule: Always end replies with exactly one dog emoji unless the last 3 chars already include a dog emoji (🐕 or 🐶). Never use more than one.
@@ -132,6 +131,33 @@ ${buildTokenomicsSection()}
 ${EXTRA}`;
 
 const DOG_EMOJIS = ['🐕', '🐶'];
+const IDENTITY_DISCLOSURE_PATTERN = /\b(?:i am|i'm)\s+(?:charlie|an?\s+ai)|built by\s+charlie bull|created by\s+charlie bull/i;
+const IDENTITY_QUERY_PATTERN = /\b(?:who are you|what are you|who built you|who created you|who is your creator|your creator|your identity)\b/i;
+
+function hasIdentityDisclosure(history: ChatMessage[]): boolean {
+  return history.some(
+    message => message.role === 'assistant' && IDENTITY_DISCLOSURE_PATTERN.test(message.content),
+  );
+}
+
+function isIdentityQuery(userInput: string): boolean {
+  return IDENTITY_QUERY_PATTERN.test(userInput);
+}
+
+function buildIdentityInstructions(history: ChatMessage[], userInput: string): string {
+  const disclosed = hasIdentityDisclosure(history);
+  const identityRequested = isIdentityQuery(userInput);
+
+  if (disclosed) {
+    return `IDENTITY CONVERSATION RULE: You already disclosed that you are ${NAME}, built by ${CREATOR} earlier in this conversation. Do not repeat that introduction or volunteer it again. Answer the user's current question directly.`;
+  }
+
+  if (identityRequested) {
+    return `IDENTITY CONVERSATION RULE: The user is asking about your identity. Briefly state exactly once that you are ${NAME}, built by ${CREATOR}, then answer the rest of the question if applicable.`;
+  }
+
+  return `IDENTITY CONVERSATION RULE: Do not introduce yourself or mention that you are ${NAME}, built by ${CREATOR}, unless the user explicitly asks who you are, what you are, or who built/created you.`;
+}
 
 export function ensureDogEmoji(message: string): string {
   // Strip markdown bold/italic markers — Gemini sometimes wraps values in **text** or _text_
@@ -146,7 +172,7 @@ export function ensureDogEmoji(message: string): string {
 
 export function buildPrompt(history: ChatMessage[], userInput: string): { messages: ChatMessage[] } {
   const msgs: ChatMessage[] = [
-    { role: 'system', content: SYSTEM_PERSONA },
+    { role: 'system', content: `${SYSTEM_PERSONA}\n${buildIdentityInstructions(history, userInput)}` },
     ...history.filter(m => m.role !== 'system'),
     { role: 'user', content: userInput }
   ];
@@ -160,7 +186,7 @@ export function buildPrompt(history: ChatMessage[], userInput: string): { messag
 export async function buildPromptWithMarket(history: ChatMessage[], userInput: string): Promise<{ messages: ChatMessage[] }> {
   const snapshot = await getMarketSnapshot();
   const marketSection = formatMarketContext(snapshot);
-  const systemWithMarket = SYSTEM_PERSONA + '\n\n' + marketSection;
+  const systemWithMarket = `${SYSTEM_PERSONA}\n${buildIdentityInstructions(history, userInput)}\n\n${marketSection}`;
   const msgs: ChatMessage[] = [
     { role: 'system', content: systemWithMarket },
     ...history.filter(m => m.role !== 'system'),
