@@ -42,7 +42,7 @@ const POST_TOPICS = [
   'roadmap_bull',          // $BULL educational token on Pump.fun + graduation
   'roadmap_nft',           // NFT collection on Solana for $BULL graduates
   'bridge_tech',           // Axelar Network, LayerZero, Squid Router
-  'same_contract',         // Same contract address across all 9 chains
+  'same_contract',         // Same contract address across all 8 active EVM networks
   'why_base_l2',           // Why Base L2, Aerodrome, Ethereum L2 benefits
   'community_airdrop',     // 35% community allocation, rewards, airdrops
   'defi_education',        // General DeFi/cross-chain education nugget
@@ -555,9 +555,8 @@ export class SocialMediaScheduler {
     const topicContextMap: Record<PostTopic, string> = {
       chain_spotlight: `You're posting about ${randomChain.name} and its role in Charlie Bull's upcoming cross-chain deployment. The same $CHAR contract address (${tokenomics.contractAddress}) is registered on ${randomChain.name}${randomChain.isLaunchPool ? ' — this is the PLANNED TGE launch pool on Aerodrome (Q4 2026)!' : `, with ${randomChain.dex} as the planned DEX post-TGE`}. IMPORTANT: $CHAR is pre-TGE. There are NO active liquidity pools on any chain right now. Do NOT say users can swap or buy $CHAR. Frame this as the upcoming cross-chain vision.`,
 
-      tokenomics_fact: `Share a specific tokenomics fact. Total supply: ${tokenomics.totalSupply} $CHAR. Allocation: 50% (${tokenomics.allocation.liquidity.tokens}) goes to DEX liquidity across all chains, 35% (${tokenomics.allocation.community.tokens}) goes to community airdrops and rewards, 15% (${tokenomics.allocation.teamDev.tokens}) for IP and project expansion. Ticker is $CHAR. Same contract address on all 9 chains: ${tokenomics.contractAddress}.`,
-
-      roadmap_tge: `The Token Generation Event (TGE) for $CHAR is coming Q4 2026 on Base network via Aerodrome DEX. CoinGecko and Etherscan listing approvals are being processed in Q4 2026. After TGE, $CHAR will expand cross-chain to all 9 blockchains. This is the first official launch of $CHAR — before TGE it's in pre-launch phase. Aerodrome is Base's leading DEX by TVL.`,
+      tokenomics_fact: `Share a specific tokenomics fact. Total supply: ${tokenomics.totalSupply} $CHAR. Allocation: 50% (${tokenomics.allocation.liquidity.tokens}) goes to DEX liquidity across all active chains, 35% (${tokenomics.allocation.community.tokens}) goes to community airdrops and rewards, 15% (${tokenomics.allocation.teamDev.tokens}) for IP and project expansion. Ticker is $CHAR. Same contract address across the 8 active EVM networks: ${tokenomics.contractAddress}.`,
+      roadmap_tge: `The Token Generation Event (TGE) for $CHAR is coming Q4 2026 on Base network via Aerodrome DEX. CoinGecko and Etherscan listing approvals are being processed in Q4 2026. After TGE, $CHAR will expand across the 8 active EVM networks. Hyperliquid is the primary 8+ expansion target pending Axelar Amplifier ITS Hub routing confirmation. This is the first official launch of $CHAR — before TGE it's in pre-launch phase. Aerodrome is Base's leading DEX by TVL.`,
 
       roadmap_bull: `$BULL is an educational token launching Q1 2027 on Pump.fun with 1 billion supply. Before $BULL graduates on Pump.fun, 1B $CHAR tokens are locked. After $BULL graduates, the LP is locked, 1B $CHAR is permanently burned (deflationary!), NFT access is unlocked, and a CHAR/BULL swap pair launches on Raydium.`,
 
@@ -869,7 +868,7 @@ You are Charlie Bull, a playful puppy mascot for a cross-chain cryptocurrency pr
 
 About Charlie Bull:
 - ${project.description}
-- Contract address registered on 9 blockchains — PRE-TGE: no active liquidity pools yet
+- Contract address registered across 8 active EVM networks — PRE-TGE: no active liquidity pools yet
 - TGE launches Q4 2026 on Base via Aerodrome — $CHAR is NOT currently buyable or tradeable
 - Educational and community-focused
 - Built on Base L2

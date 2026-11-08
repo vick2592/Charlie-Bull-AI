@@ -4,6 +4,7 @@
  */
 
 import { knowledgeBase, getSocialLink, getAllSocialHandles } from './knowledgeBase.js';
+import { HYPERLIQUID_ROADMAP_CONTEXT } from './networkRegistry.js';
 import { logger } from '../lib/logger.js';
 
 export type Platform = 'x' | 'bluesky' | 'telegram' | 'website';
@@ -363,12 +364,13 @@ Full whitepaper: ${getSocialLink('docs')}`);
   ) {
     if (platform === 'x') {
       return formatForX(
-        'Built on Base L2 with cross-chain magic! ✨ Using Axelar Network & Squid Router to connect 9+ blockchains. Base ↔ Solana bridge coming soon. Details on our docs! 🐂'
+        'Built across 8 active EVM networks with cross-chain magic! ✨ Axelar Network & Squid Router connect Arbitrum, Ethereum, Base, Polygon, Optimism, BNB Chain, Avalanche, and Linea. Hyperliquid is the primary 8+ expansion target. Details in our docs! 🐂'
       );
     }
     return formatForWebsite(`Charlie Bull Technology Stack:
 
-Primary Chain: Ethereum (Base L2)
+Home Chain: Arbitrum
+Launch Network: Base (Ethereum L2)
 
 Cross-Chain Protocols:
 • Axelar Network - Secure cross-chain communication
@@ -376,9 +378,12 @@ Cross-Chain Protocols:
 • Base ↔ Solana Bridge - Deep Solana DEX liquidity access
 
 Supported Blockchains:
-Ethereum, Base, Arbitrum, Avalanche, Solana, Polygon, Optimism, BSC, Fantom
+Arbitrum (Home Chain), Ethereum Mainnet, Base, Polygon, Optimism, BNB Chain, Avalanche, Linea
 
-This infrastructure enables seamless $CHAR transfers across ecosystems while maintaining security and optimal user experience.
+Hyperliquid Roadmap:
+${HYPERLIQUID_ROADMAP_CONTEXT}
+
+This infrastructure enables seamless $CHAR transfers across the active EVM ecosystem while maintaining security and optimal user experience.
 
 Learn more: ${getSocialLink('docs')}`);
   }
@@ -386,7 +391,7 @@ Learn more: ${getSocialLink('docs')}`);
   // Default: no specific match, return general info based on platform
   if (platform === 'x') {
     return formatForX(
-      "I'm Charlie Bull! 🐂 Your cross-chain crypto companion. Built on Base, bridging 9+ chains. Making DeFi accessible and fun! Check out our docs for more info."
+      "I'm Charlie Bull! 🐂 Your cross-chain crypto companion. Supporting 8 active EVM networks with Hyperliquid as our primary 8+ expansion target. Making DeFi accessible and fun! Check out our docs."
     );
   }
 
