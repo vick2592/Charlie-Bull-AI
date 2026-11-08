@@ -26,3 +26,9 @@ pnpm-debug.log*
 .eslintcache
 .nyc_output
 *.tar.gz
+
+# Experimental & diagnostic test scripts
+src/experimental/*
+!src/experimental/hyperliquid/
+!src/experimental/hyperliquid/**
+*.log
