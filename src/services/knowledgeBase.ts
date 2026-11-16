@@ -6,7 +6,7 @@
 import {
   ACTIVE_EVM_NETWORKS,
   ACTIVE_EVM_NETWORK_COUNT,
-  HYPERLIQUID_ROADMAP_CONTEXT,
+  HYPERLIQUID_LIVE_CONTEXT,
 } from './networkRegistry.js';
 
 export interface TokenomicsData {
@@ -85,16 +85,16 @@ export const knowledgeBase: KnowledgeBase = {
     mission:
       'Making cryptocurrency accessible to everyone through educational resources, AI-powered assistance, and seamless cross-chain functionality.',
     keyFeatures: [
-      `Charlie Bull currently supports ${ACTIVE_EVM_NETWORK_COUNT} active EVM networks: Arbitrum (Home Chain), Ethereum Mainnet, Base, Polygon, Optimism, BNB Chain, Avalanche, and Linea`,
-      'Same contract address (0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1) across all 8 active chains — simplifies bridging and verification post-TGE',
+      `Charlie Bull currently supports ${ACTIVE_EVM_NETWORK_COUNT} active EVM networks: Arbitrum (Home Chain), Ethereum Mainnet, Base, Polygon, Optimism, BNB Chain, Avalanche, Linea, and Hyperliquid (HyperEVM)`,
+      'Same deterministic canonical contract address (0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1) across all 9 active chains — simplifies bridging and verification',
       'Planned TGE launch pool on Base via Aerodrome (Q4 2026) — token NOT yet available for purchase',
-      'Multi-DEX roadmap post-TGE: Uniswap, Aerodrome, QuickSwap, Velodrome, PancakeSwap, LFGJ, and Linea DEX — liquidity added chain by chain after TGE',
+      'Multi-DEX architecture: Uniswap, Aerodrome, QuickSwap, Velodrome, PancakeSwap, LFGJ, Linea DEX, and Hyperliquid (HyperEVM) — liquidity and trading integrations evolve chain by chain',
       'AI-powered educational assistant (Charlie) on Telegram, Bluesky, X, and website',
       'Community-first tokenomics: 35% for airdrops and rewards',
       'Cross-chain bridging planned via Axelar Network and Squid Router — active post-TGE',
       'Base ↔ Solana bridge unlocks CHAR/BULL swap pair on Raydium (Q2 2027)',
       'Educational $BULL token (1B supply) on Pump.fun — graduation burns 1B $CHAR permanently',
-      HYPERLIQUID_ROADMAP_CONTEXT,
+      HYPERLIQUID_LIVE_CONTEXT,
     ],
   },
 
@@ -120,8 +120,8 @@ export const knowledgeBase: KnowledgeBase = {
       },
     },
     notes: [
-      'PRE-TGE: $CHAR is NOT yet available for purchase or trading. The contract address exists on all 8 active chains but there are ZERO active DEX liquidity pools. TGE launches Q4 2026 on Base via Aerodrome. After TGE, liquidity is bridged to other chains by the community.',
-      HYPERLIQUID_ROADMAP_CONTEXT,
+      'PRE-TGE: $CHAR is NOT yet available for purchase or trading. The contract address exists on all 9 active chains but there are ZERO active DEX liquidity pools. TGE launches Q4 2026 on Base via Aerodrome. After TGE, liquidity is bridged to other chains by the community.',
+      HYPERLIQUID_LIVE_CONTEXT,
       '$BULL educational token (1B supply) launching Q1 2027 on Pump.fun (Solana)',
       'Pre-graduation: $BULL powers educational streams + weekly podcasts on Pump.fun. 1B $CHAR tokens are locked.',
       'Post-graduation: 1B $CHAR permanently burned from Ethereum locked liquidity (deflationary, hardcoded — not a manual team action)',
@@ -191,7 +191,7 @@ export const knowledgeBase: KnowledgeBase = {
       quarter: 'Q4 2026 – Q1 2027',
       title: 'Cross-Chain Expansion',
       description:
-        'Expand liquidity and bridging across the 8 active EVM networks: Arbitrum, Ethereum Mainnet, Base, Polygon, Optimism, BNB Chain, Avalanche, and Linea. Hyperliquid remains the primary 8+ expansion target pending Axelar Amplifier ITS Hub routing confirmation.',
+        'Live 9-chain architecture: Arbitrum, Ethereum Mainnet, Base, Polygon, Optimism, BNB Chain, Avalanche, Linea, and Hyperliquid (HyperEVM), with Hyperliquid connected via Axelar ITS Hub.',
       completed: false,
     },
     {
@@ -252,7 +252,7 @@ export const knowledgeBase: KnowledgeBase = {
       url: 'https://medium.com/@charliebullart/charlie-bull-char-tokenomics-the-blueprint-for-a-defi-revolution',
       date: '2025-12-15',
       summary:
-        'Comprehensive breakdown of $CHAR tokenomics: 420.69B supply across 8 active EVM networks, 50% liquidity, 35% community rewards, $BULL educational token integration, and cross-chain architecture.',
+        'Comprehensive breakdown of $CHAR tokenomics: 420.69B supply across 9 active EVM networks, 50% liquidity, 35% community rewards, $BULL educational token integration, and cross-chain architecture.',
     },
   ],
 };
@@ -302,7 +302,7 @@ export function getTechnologyStack(): string {
   return `Built on ${technology.primaryChain}
 Cross-chain via: ${technology.crossChainProtocols.join(', ')}
 Deployed on ${ACTIVE_EVM_NETWORK_COUNT} active EVM networks: ${chains}
-Hyperliquid roadmap: ${HYPERLIQUID_ROADMAP_CONTEXT}
+Hyperliquid integration: ${HYPERLIQUID_LIVE_CONTEXT}
 Contract Address (all active chains): ${knowledgeBase.tokenomics.contractAddress}`;
 }
 

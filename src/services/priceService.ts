@@ -2,12 +2,12 @@
  * Price Service
  * Fetches live market data from two sources:
  *   1. DexScreener — $CHAR on-chain price across active EVM networks
- *   2. CoinGecko (free, no key) — native/governance token prices for Charlie's 8 active EVM networks,
+ *   2. CoinGecko (free, no key) — native/governance token prices for Charlie's 9 active EVM networks,
  *      plus BTC as a market-wide indicator.
  *
  * Tracked chain tokens:
  *   BTC (market), ETH (Ethereum/Base/Linea), OP (Optimism), BNB (BNB Chain),
- *   AVAX (Avalanche), ARB (Arbitrum), POL (Polygon),
+ *   AVAX (Avalanche), ARB (Arbitrum), POL (Polygon), HYPE (HyperEVM),
  *   SOL (roadmap bridge)
  *
  * Data is cached for 5 minutes to avoid hammering free APIs.
@@ -38,7 +38,7 @@ export interface TopTokenPrice {
 
 export interface MarketSnapshot {
   charPrices: CharPrice[];       // $CHAR price on each chain (may be empty pre-TGE)
-  topTokens: TopTokenPrice[];    // Native/gov tokens for Charlie's 8 active EVM networks + BTC
+  topTokens: TopTokenPrice[];    // Native/gov tokens for Charlie's 9 active EVM networks + BTC
   fetchedAt: Date;
 }
 
@@ -47,12 +47,12 @@ export interface MarketSnapshot {
 // Cache TTL: 5 minutes
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
-// $CHAR contract address (same on all 8 active EVM networks)
+// $CHAR contract address (same on all 9 active EVM networks)
 const CHAR_CONTRACT = '0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1';
 
-// Native/governance tokens for Charlie's 8 active EVM networks, plus BTC as market indicator.
+// Native/governance tokens for Charlie's 9 active EVM networks, plus BTC as market indicator.
 // Covers: Arbitrum (ARB), Ethereum/Mainnet/Base/Linea (ETH), Polygon (POL),
-//         Optimism (OP), BNB Chain (BNB), Avalanche (AVAX).
+//         Optimism (OP), BNB Chain (BNB), Avalanche (AVAX), HyperEVM (HYPE).
 // Also includes SOL for the roadmap Base↔Solana bridge and Raydium pair.
 const CHAIN_TOKEN_COINGECKO_IDS = [
   'bitcoin',       // BTC — market-wide indicator
@@ -62,6 +62,7 @@ const CHAIN_TOKEN_COINGECKO_IDS = [
   'polygon-ecosystem-token', // POL — Polygon (rebranded from MATIC, new CoinGecko ID)
   'arbitrum',               // ARB — Arbitrum
   'optimism',               // OP — Optimism
+  'hyperliquid',            // HYPE — HyperEVM
   'solana',                 // SOL — roadmap: Base↔Solana bridge + Raydium pair
 ];
 
@@ -74,6 +75,7 @@ const COINGECKO_SYMBOL: Record<string, string> = {
   'polygon-ecosystem-token': 'POL',
   arbitrum: 'ARB',
   optimism: 'OP',
+  hyperliquid: 'HYPE',
   solana: 'SOL',
 };
 
@@ -242,8 +244,8 @@ export function formatMarketContext(snapshot: MarketSnapshot): string {
   }
 
   if (snapshot.topTokens.length > 0) {
-    lines.push("CHAIN NATIVE TOKENS (live via CoinGecko — covers Charlie Bull's 8 active EVM networks):");
-    lines.push('  ARB = Arbitrum home chain | ETH = Ethereum Mainnet, Base, Linea | POL = Polygon | OP = Optimism | BNB = BNB Chain | AVAX = Avalanche | SOL = Solana (Q2 2027 bridge roadmap)');
+    lines.push("CHAIN NATIVE TOKENS (live via CoinGecko — covers Charlie Bull's 9 active EVM networks):");
+    lines.push('  ARB = Arbitrum home chain | ETH = Ethereum Mainnet, Base, Linea | POL = Polygon | OP = Optimism | BNB = BNB Chain | AVAX = Avalanche | HYPE = HyperEVM | SOL = Solana (Q2 2027 bridge roadmap)');
     for (const t of snapshot.topTokens) {
       lines.push(`  ${t.symbol}: ${t.priceUsd} (24h: ${t.priceChange24h})`);
     }

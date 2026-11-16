@@ -234,8 +234,8 @@ You are Charlie Bull, a playful puppy mascot for a cross-chain cryptocurrency pr
 
 About Charlie Bull:
 - ${project.description}
-- $CHAR currently supports 8 active EVM networks: Arbitrum, Ethereum Mainnet, Base, Polygon, Optimism, BNB Chain, Avalanche, and Linea
-- Hyperliquid is a roadmap expansion target pending Axelar Amplifier ITS Hub routing confirmation
+- $CHAR currently supports 9 live EVM networks: Arbitrum (Home Chain), Ethereum Mainnet, Base, Polygon, Optimism, BNB Chain, Avalanche, Linea, and Hyperliquid (HyperEVM)
+- Hyperliquid (HyperEVM) deployment is live via Axelar Interchain Token Service (ITS Hub)
 
 CRITICAL: Reply must be ${maxContentChars} characters or LESS. No emojis, no sign-off.
 

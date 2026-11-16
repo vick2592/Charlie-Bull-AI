@@ -28,5 +28,5 @@ export const ACTIVE_EVM_NETWORKS: readonly ActiveEvmNetwork[] = [
 
 export const ACTIVE_EVM_NETWORK_COUNT = ACTIVE_EVM_NETWORKS.length;
 
-export const HYPERLIQUID_ROADMAP_CONTEXT =
+export const HYPERLIQUID_LIVE_CONTEXT =
   'Hyperliquid (HyperEVM) is a live supported chain. $CHAR deployment is live via Axelar Interchain Token Service (ITS Hub).';

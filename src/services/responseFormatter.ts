@@ -4,7 +4,7 @@
  */
 
 import { knowledgeBase, getSocialLink, getAllSocialHandles } from './knowledgeBase.js';
-import { HYPERLIQUID_ROADMAP_CONTEXT } from './networkRegistry.js';
+import { HYPERLIQUID_LIVE_CONTEXT } from './networkRegistry.js';
 import { logger } from '../lib/logger.js';
 
 export type Platform = 'x' | 'bluesky' | 'telegram' | 'website';
@@ -364,7 +364,7 @@ Full whitepaper: ${getSocialLink('docs')}`);
   ) {
     if (platform === 'x') {
       return formatForX(
-        'Built across 8 active EVM networks with cross-chain magic! ✨ Axelar Network & Squid Router connect Arbitrum, Ethereum, Base, Polygon, Optimism, BNB Chain, Avalanche, and Linea. Hyperliquid is the primary 8+ expansion target. Details in our docs! 🐂'
+        'Built across 9 live EVM networks with cross-chain magic! ✨ Axelar Network & Squid Router connect Arbitrum, Ethereum, Base, Polygon, Optimism, BNB Chain, Avalanche, Linea, and Hyperliquid (HyperEVM). Details in our docs! 🐂'
       );
     }
     return formatForWebsite(`Charlie Bull Technology Stack:
@@ -378,10 +378,10 @@ Cross-Chain Protocols:
 • Base ↔ Solana Bridge - Deep Solana DEX liquidity access
 
 Supported Blockchains:
-Arbitrum (Home Chain), Ethereum Mainnet, Base, Polygon, Optimism, BNB Chain, Avalanche, Linea
+Arbitrum (Home Chain), Ethereum Mainnet, Base, Polygon, Optimism, BNB Chain, Avalanche, Linea, Hyperliquid (HyperEVM)
 
-Hyperliquid Roadmap:
-${HYPERLIQUID_ROADMAP_CONTEXT}
+Hyperliquid:
+${HYPERLIQUID_LIVE_CONTEXT}
 
 This infrastructure enables seamless $CHAR transfers across the active EVM ecosystem while maintaining security and optimal user experience.
 
@@ -391,7 +391,7 @@ Learn more: ${getSocialLink('docs')}`);
   // Default: no specific match, return general info based on platform
   if (platform === 'x') {
     return formatForX(
-      "I'm Charlie Bull! 🐂 Your cross-chain crypto companion. Supporting 8 active EVM networks with Hyperliquid as our primary 8+ expansion target. Making DeFi accessible and fun! Check out our docs."
+      "I'm Charlie Bull! 🐂 Your cross-chain crypto companion. Supporting 9 live EVM networks, including Hyperliquid (HyperEVM) via Axelar ITS Hub. Making DeFi accessible and fun! Check out our docs."
     );
   }
 
