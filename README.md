@@ -19,6 +19,7 @@ Fastify + TypeScript microservice exposing `POST /v1/chat` backed by Google Gemi
 - ✅ Social media automation — Bluesky (posts + replies) and X/Twitter (posts only)
 - ✅ 14-topic rotation system with post-type variety to prevent repetitive posts
 - ✅ Comprehensive knowledge base (tokenomics, roadmap, chains, contracts, social links)
+- ✅ Live 9-chain EVM architecture, including Hyperliquid (HyperEVM) via Axelar ITS Hub
 
 ---
 
@@ -30,6 +31,31 @@ pnpm install
 pnpm dev
 curl -s localhost:8080/healthz
 ```
+
+## Live EVM Network Architecture
+
+$CHAR is deployed across 9 live EVM networks using the same deterministic canonical contract address:
+
+`0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1`
+
+| Network | Chain ID | Native gas | Explorer | Bridge |
+|---|---:|---|---|---|
+| Arbitrum (Home Chain) | 42161 | ARB | https://arbiscan.io | Axelar ITS |
+| Ethereum Mainnet | 1 | ETH | https://etherscan.io | Axelar ITS |
+| Base | 8453 | ETH | https://basescan.org | Axelar ITS |
+| Polygon | 137 | POL | https://polygonscan.com | Axelar ITS |
+| Optimism | 10 | OP | https://optimistic.etherscan.io | Axelar ITS |
+| BNB Chain | 56 | BNB | https://bscscan.com | Axelar ITS |
+| Avalanche | 43114 | AVAX | https://snowtrace.io | Axelar ITS |
+| Linea | 59144 | ETH | https://lineascan.build | Axelar ITS |
+| Hyperliquid (HyperEVM) | 999 | HYPE | https://hyperevmscan.io | Axelar ITS Hub |
+
+Hyperliquid RPC: `https://rpc.hyperliquid.xyz/evm`
+Hyperliquid `$CHAR` TokenManager: `0x1312878F2263067C98F93d2Fee8865Ca6b4f02c7`
+
+Hyperliquid deployment is live through Axelar Interchain Token Service (ITS Hub). HYPE market data is fetched from CoinGecko using the `hyperliquid` asset ID and exposed as `HYPE` in the AI market context.
+
+The network registry is maintained in `src/services/networkRegistry.ts`. The experimental Hyperliquid simulation harness has been removed now that the mainnet integration is live.
 
 ---
 

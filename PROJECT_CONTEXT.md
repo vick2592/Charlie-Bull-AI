@@ -1,6 +1,6 @@
 # Charlie Bull — Backend Context (charlie-ai-server)
 
-**Read this file first.** Last updated: July 9, 2026 (v8) · Server version: 0.1.6
+**Read this file first.** Last updated: November 15, 2026 (v9) · Server version: 0.1.6
 
 ## 1. What This Is
 
@@ -25,6 +25,7 @@ src/
 ├── lib/logger.ts            # Pino
 ├── routes/                  # health, chat, social endpoints
 ├── services/
+│   ├── networkRegistry.ts   # Active 9-chain EVM registry and HyperEVM metadata
 │   ├── persona.ts           # SYSTEM_PERSONA, buildPrompt(), buildPromptWithMarket(), ensureDogEmoji()
 │   ├── knowledgeBase.ts     # Single source of truth for project data
 │   ├── geminiClient.ts      # Gemini SDK + REST fallback, model chain
@@ -96,6 +97,10 @@ Persona built in `persona.ts`, data from `knowledgeBase.ts`. Enthusiastic DeFi d
 
 **Pre-TGE rule:** $CHAR is NOT tradeable yet. No DEX pools. TGE = Q4 2026 on Base via Aerodrome. Enforced across `knowledgeBase.ts`, `persona.ts`, and `socialMediaScheduler.ts` topic prompts.
 
+**Live chain architecture:** $CHAR is deployed across 9 live EVM networks with the same deterministic canonical address:
+Arbitrum (Home Chain, chain ID 42161), Ethereum Mainnet (1), Base (8453), Polygon (137), Optimism (10), BNB Chain (56), Avalanche (43114), Linea (59144), and Hyperliquid (HyperEVM, 999).
+Hyperliquid uses `https://rpc.hyperliquid.xyz/evm`, native gas token `HYPE`, explorer `https://hyperevmscan.io`, and Axelar Interchain Token Service (ITS Hub). Its TokenManager is `0x1312878F2263067C98F93d2Fee8865Ca6b4f02c7`.
+
 ### Platform Status
 | Platform | Handle | Status |
 |----------|--------|--------|
@@ -110,10 +115,11 @@ Persona built in `persona.ts`, data from `knowledgeBase.ts`. Enthusiastic DeFi d
 
 **Single source of truth.** First file to update when project data changes. Feeds the system prompt automatically.
 
-**$CHAR:** ERC-20 · 420.69B supply · `0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1` (same on all 9 chains)
+**$CHAR:** ERC-20 · 420.69B supply · `0x7F9532940e98eB7c2da6ba23c3f3D06315BfaAF1` (same deterministic canonical address on all 9 live chains)
 - Distribution: 50% Liquidity (locked) · 35% Community · 15% Team
-- Chains: Base ⭐ (Aerodrome), Ethereum (Uniswap), Arbitrum (Uniswap), Polygon (QuickSwap), Avalanche (LFGJ), BSC (PancakeSwap), Mantle (Fusion X), Linea (Linea DEX), Hype EVM (post-TGE DEX TBD)
-- Bridges: Axelar, Squid Router, Base↔Solana
+- Chains: Arbitrum (Home Chain), Ethereum Mainnet, Base, Polygon, Optimism, BNB Chain, Avalanche, Linea, Hyperliquid (HyperEVM)
+- Hyperliquid: chain ID 999 · HYPE gas · Axelar ITS Hub · explorer https://hyperevmscan.io · TokenManager `0x1312878F2263067C98F93d2Fee8865Ca6b4f02c7`
+- Bridges: Axelar ITS Hub, Squid Router, Base↔Solana
 
 **$BULL:** Pump.fun/Solana · 1B supply · Launch Q1 2027 post-TGE
 - Graduation: 1B $CHAR permanently burned → CHAR/BULL pair on Raydium + Charlie's Angels NFT access
@@ -124,7 +130,9 @@ Persona built in `persona.ts`, data from `knowledgeBase.ts`. Enthusiastic DeFi d
 
 **`geminiClient.ts`:** SDK + REST fallback. Tries `GEMINI_MODELS` chain in order. Normalizes deprecated model names to current equivalents. **60s timeout on both SDK and REST call paths** — prevents indefinite hangs if the API accepts the TCP connection but never responds (timeout rejects → caught → next model in chain or `isError: true` fallback). Returns `{ text, isError: true }` on failure — **callers must check `isError`**. Always applies `ensureDogEmoji()` (stripped by `stripSocialSignature()` for social posts).
 
-**`priceService.ts`:** DexScreener ($CHAR on-chain, highest-liquidity pair per chain, `[]` pre-TGE) + CoinGecko (sole source for chain tokens: BTC, ETH, BNB, AVAX, POL, ARB, MNT, HYPE, SOL). 5-min cache, parallel fetch, 8s timeout, **never throws**. Key exports: `getMarketSnapshot()`, `formatMarketContext()`, `formatCharPriceResponse()`. CoinGecko ID gotchas: POL=`polygon-ecosystem-token`, HYPE=`hyperliquid`, MNT=`mantle`. Zero-price filter excludes null/≤0 prices.
+**`priceService.ts`:** DexScreener ($CHAR on-chain, highest-liquidity pair per chain, `[]` pre-TGE) + CoinGecko (sole source for chain tokens: BTC, ETH, BNB, AVAX, POL, ARB, OP, HYPE, SOL). 5-min cache, parallel fetch, 8s timeout, **never throws**. Key exports: `getMarketSnapshot()`, `formatMarketContext()`, `formatCharPriceResponse()`. CoinGecko ID gotchas: POL=`polygon-ecosystem-token`, HYPE=`hyperliquid`. Zero-price filter excludes null/≤0 prices.
+
+**`networkRegistry.ts`:** Single active-network registry containing chain ID, RPC URL, DEX, native gas token, block explorer, bridge protocol, canonical `$CHAR` contract, and optional TokenManager metadata. Hyperliquid is a live network, not a pending roadmap target.
 
 **`memoryStore.ts`:** In-memory only (cleared on restart). ~10 turns, 5000 char budget. Server memory takes precedence over frontend-supplied history.
 
